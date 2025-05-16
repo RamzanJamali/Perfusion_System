@@ -12,13 +12,13 @@
 #include "BasicStepperDriver.h"
 
 // Motor steps per revolution. Most steppers are 200 steps or 1.8 degrees/step
-#define MOTOR_STEPS 20
+#define MOTOR_STEPS 200
 #define RPM 1
 
 // Since microstepping is set externally, make sure this matches the selected mode
 // If it doesn't, the motor will move at a different RPM than chosen
 // 1=full step, 2=half step etc.
-#define MICROSTEPS 1
+#define MICROSTEPS 32
 
 // All the wires needed for full functionality
 #define DIR 8
@@ -46,15 +46,15 @@ void loop() {
     /*
      * Moving motor one full revolution using the degree notation
      */
-    stepper.rotate(360);
+    //stepper.rotate(-7200);
 
     /*
      * Moving motor to original position using steps
      */
-    stepper.move(-MOTOR_STEPS*MICROSTEPS);
+    stepper.move(1);
 
     // pause and allow the motor to be moved by hand
     // stepper.disable();
 
-    delay(5000);
+    delay(100);
 }
