@@ -86,18 +86,56 @@ if "reader" not in st.session_state:
     st.session_state.reader = t
 
 # ————— ST UI —————
-st.title("🔌 Raspberry Pi ↔️ Arduino Dashboard")
+st.title("Raspberry Pi ↔️ Arduino Dashboard")
+
 
 # Command buttons
+st.markdown("""
+    <style>
+    .st-key-clockwise button {
+        background-color: #28a745; /* green */
+        color: white;
+    }
+    .st-key-clockwise button:hover {
+        background-color: #218838; /* darker green */
+        color: white;
+        border: 1px solid #218838;
+    }
+            
+    .st-key-counterclockwise button {
+        background-color: #28a745; /* green */
+        color: white;
+    }
+    .st-key-counterclockwise button:hover {
+        background-color: #218838; /* darker green */
+        color: white;
+        border: 1px solid #218838;
+    }
+            
+    .st-key-stop button {
+        background-color: #dc3545; /* red */
+        color: white;
+    }
+    .st-key-stop button:hover {
+        background-color: #c82333; /* darker red */
+        color: white;
+        border: 1px solid #c82333;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+
 col1, col2, col3 = st.columns(3)
 with col1:
-    if st.button("RUN CLOCKWISE"):
+    if st.button("RUN CLOCKWISE", key="clockwise"):
         ser.write(b"RUN_CLOCKWISE\n")
+
 with col2:
-    if st.button("RUN COUNTERCLOCKWISE"):
+    if st.button("RUN COUNTERCLOCKWISE", key="counterclockwise"):
         ser.write(b"RUN_COUNTERCLOCKWISE\n")
-with col2:
-    if st.button("STOP MOTOR"):
+
+with col3:
+    if st.button("STOP MOTOR", key="stop"): 
         ser.write(b"STOP_MOTOR\n")
 
 # Sensor data plot
