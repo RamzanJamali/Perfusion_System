@@ -6,7 +6,6 @@ import time
 import pandas as pd
 
 
-
 # Trigger auto‑refresh every 500 ms (infinite)
 st_autorefresh(interval=500, limit=None, key="serial_refresh")
 
@@ -35,7 +34,6 @@ def connect():
                 return None
 
 
-
 ser = connect()
 
 # ————— DATA BUFFER —————
@@ -44,7 +42,9 @@ def get_buffer():
     """Return a mutable list to hold recent readings."""
     return []
 
+
 buffer = get_buffer()
+
 
 # ————— BACKGROUND READER —————
 def read_serial(buffer):
@@ -78,6 +78,7 @@ def read_serial(buffer):
                 # ignore malformed lines
           #      pass
 
+
 # start background thread once
 if "reader" not in st.session_state:
     buffer = get_buffer()
@@ -85,58 +86,96 @@ if "reader" not in st.session_state:
     t.start()
     st.session_state.reader = t
 
+
 # ————— ST UI —————
 st.title("Raspberry Pi ↔️ Arduino Dashboard")
 
 
-# Command buttons
+# Command buttons style
 st.markdown("""
     <style>
     .st-key-clockwise button {
-        background-color: #28a745; /* green */
+        background-color: #04AA6D; /* Green */
         color: white;
+        border: 1px solid #28a745; /* Green */
     }
     .st-key-clockwise button:hover {
-        background-color: #218838; /* darker green */
-        color: white;
-        border: 1px solid #218838;
+        background-color: white;
+        color: black;
+        border: 3px solid #04AA6D; /* Green */
+    }
+    .st-key-clockwise button:focus {
+        background-color: white;
+        color: white;   
+        border: 3px solid #04AA6D; /* Green */
     }
             
     .st-key-counterclockwise button {
-        background-color: #28a745; /* green */
+        background-color: #04AA6D; /* Green */
         color: white;
+        border: 1px solid #04AA6D; /* Green */
     }
     .st-key-counterclockwise button:hover {
-        background-color: #218838; /* darker green */
-        color: white;
-        border: 1px solid #218838;
+        background-color: white;
+        color: black;
+        border: 3px solid #04AA6D; /* Green */
+    }
+    .st-key-counterclockwise button:focus {
+        background-color: white;
+        color: black;
+        border: 3px solid #04AA6D;
     }
             
     .st-key-stop button {
-        background-color: #dc3545; /* red */
-        color: white;
+        background-color: #008CBA; /* Blue */
+        color: white;   
+        border: 1px solid #008CBA; /* Blue */
     }
     .st-key-stop button:hover {
-        background-color: #c82333; /* darker red */
-        color: white;
-        border: 1px solid #c82333;
+        background-color: white;
+        color: black;
+        border: 3px solid #008CBA; /* Blue */
+    }
+    .st-key-stop button:focus {
+        background-color: white; 
+        color: black;
+        border: 3px solid #f44336; /* red */
     }
     </style>
 """, unsafe_allow_html=True)
 
 
-col1, col2, col3 = st.columns(3)
+#col1, col2, col3 = st.columns(3)
+#with col1:
+#    if st.button("RUN CLOCKWISE", key="clockwise"):
+#        ser.write(b"RUN_CLOCKWISE\n")
+#
+#with col2:
+#    if st.button("RUN COUNTERCLOCKWISE", key="counterclockwise"):
+#        ser.write(b"RUN_COUNTERCLOCKWISE\n")
+
+#with col3:
+#    if st.button("STOP MOTOR", key="stop"): 
+#        ser.write(b"STOP_MOTOR\n")
+
+
+def serial_write_button(name: str, button_key:str, command:str)-> None:
+    """ Send command to Arduino when button is pressed. 
+    Args: name (str): Button name.
+    button_key (str): Unique key for the button to avoid Streamlit's key collision and to give it a unique style.
+    command (str): Command to send to Arduino."""
+    if st.button(name, key=button_key):
+        ser.write(f"{command}\n".encode('utf-8'))
+
+
+col1, col2, col3= st.columns(3)
 with col1:
-    if st.button("RUN CLOCKWISE", key="clockwise"):
-        ser.write(b"RUN_CLOCKWISE\n")
-
+    clockwise = serial_write_button("RUN CLOCKWISE", "clockwise", "RUN_CLOCKWISE")
 with col2:
-    if st.button("RUN COUNTERCLOCKWISE", key="counterclockwise"):
-        ser.write(b"RUN_COUNTERCLOCKWISE\n")
-
+    counterclockwise = serial_write_button("RUN COUNTERCLOCKWISE", "counterclockwise", "RUN_COUNTERCLOCKWISE")
 with col3:
-    if st.button("STOP MOTOR", key="stop"): 
-        ser.write(b"STOP_MOTOR\n")
+    counterclockwise = serial_write_button("STOP MOTOR", "stop", "STOP_MOTOR")
+
 
 # Sensor data plot
 st.subheader("Live Motor Status")
