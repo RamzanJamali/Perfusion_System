@@ -55,15 +55,23 @@
 // #include "BasicStepperDriver.h" // generic
 // BasicStepperDriver stepper(MOTOR_STEPS, DIR, STEP);
 
-String command;
+#define Relay 5
+
+// commands for arduino to operate. The structure is as follows: 1. Stepper motor, 2. Relay,
+//String commands[] = {"STOP_MOTOR", "OFF"};
+String inputString = "";
+const char delimiter = ',';
+const int maxCommands = 2;
+String Commands[maxCommands] = {"STOP_MOTOR", "OFF"};
 
 void setup() {
     pinMode(ENABLE_PIN, OUTPUT);
     digitalWrite(ENABLE_PIN, LOW);
 
+    pinMode(Relay, OUTPUT);
+
     Serial.begin(115200);
     //Serial.setTimeout(500);
-
     stepper.begin(RPM, MICROSTEPS);
     // if using enable/disable on ENABLE pin (active LOW) instead of SLEEP uncomment next line
     // stepper.setEnableActiveState(LOW);
@@ -83,36 +91,50 @@ void setup() {
      * stepper.rotate(360);
      */
      //stepper.startRotate(0.05625);
+    delay(1000);
    
 }
 
 void loop() {
+
+   
+   if (Serial.available()) {
+    inputString = Serial.readStringUntil('\n'); // Read until newline
+    inputString.trim();
+    CommandParser(inputString, Commands);
+   }
+/*
      if (Serial.available() ) {
       String new_Command = Serial.readStringUntil('\n');
       new_Command.trim();
       if (new_Command != 0) {
-         command = new_Command;
+         Commands[0] = new_Command;
       } else {
-         command = command;
+         //Commands = Commands;
       }
     }
-    if (command == "RUN_CLOCKWISE") {
-        Serial.println("Motor running clockwise");
+*/
+
+    if (Commands[0] == "RUN_CLOCKWISE") {
+        Serial.println("Motor running clockwise.");
         RunClockwise();
         
-      } else if (command == "RUN_COUNTERCLOCKWISE") {
-        Serial.println("Motor running counterclockwise");
+      } else if (Commands[0] == "RUN_COUNTERCLOCKWISE") {
+        Serial.println("Motor running counterclockwise.");
         RunCounterClockwise();
 
-      } else if (command == "STOP_MOTOR"){
-         Serial.println("Motor stopped");
+      } else if (Commands[0] == "STOP_MOTOR"){
+         Serial.println("Motor stopped. \n");
          StopMotor();
          
       } else {
-         Serial.println("Unknown command");
+         Serial.println("Unknown command.");
       }
+   RelayControl(Commands[1]);
+   
    
 }
+
 
 void RunClockwise(){
    digitalWrite(ENABLE_PIN, LOW);
@@ -128,4 +150,37 @@ void RunCounterClockwise(){
 
 void StopMotor(){
    digitalWrite(ENABLE_PIN, HIGH);
+}
+
+
+void RelayControl(String state){
+   if (state=="ON"){
+      digitalWrite(Relay, HIGH);
+      //Serial.println("Relay is turned ON.\n");
+   }
+
+   else if (state=="OFF") {
+      digitalWrite(Relay, LOW);
+      //Serial.println("Relay is turned OFF.\n");
+   }
+
+   else {
+      //Serial.println("Wrong parameter!\n");
+   }
+}
+
+
+void CommandParser(String inputString, String *Commands) {
+   int index = 0;
+
+   while (inputString.length() > 0 && index < maxCommands) {
+      int delimiterIndex = inputString.indexOf(delimiter);
+      if (delimiterIndex == -1) {
+        Commands[index++] = inputString;
+        break;
+      } else {
+        Commands[index++] = inputString.substring(0, delimiterIndex);
+        inputString = inputString.substring(delimiterIndex + 1);
+      }
+    }
 }

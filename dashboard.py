@@ -21,12 +21,12 @@ def connect():
     
     except:
         try:
-            ser = Serial('/dev/ttyUSB0', 9600, timeout=1)
+            ser = Serial('/dev/ttyUSB0', baudrate=BAUD_RATE, timeout=1)
             return ser
         
         except:
             try:
-                ser = Serial('/dev/ttyUSB1', 9600, timeout=1)
+                ser = Serial('/dev/ttyUSB1', baudrate=BAUD_RATE, timeout=1)
                 return ser
         
             except Exception as error:
@@ -35,6 +35,10 @@ def connect():
 
 
 ser = connect()
+time.sleep(0.01)  # Wait for Arduino to reset
+ser.reset_input_buffer()
+ser.reset_output_buffer()
+
 
 # ————— DATA BUFFER —————
 @st.cache_resource
@@ -51,7 +55,7 @@ def read_serial(buffer):
     """Continuously read lines from serial and append parsed values."""
     while True:
         try:
-            line = ser.readline().decode("utf-8").strip()
+            line = ser.read_until(b'\n').decode("utf-8").strip()
             if line == "":
                 continue
             line = (f"Arduino response: {line}")
@@ -91,7 +95,20 @@ if "reader" not in st.session_state:
 st.title("Raspberry Pi ↔️ Arduino Dashboard")
 
 
+# ---- Initialize history ----
+if "cmd_history" not in st.session_state:
+    st.session_state.cmd_history = ["STOP_MOTOR", "OFF"]  # Initialize with two empty strings
+
+
+# ---- Send function ----
+def send_all_commands():
+    # join every command with ';' and terminate with newline
+    packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
+    ser.write(packet.encode())
+    st.success(f"Sent: {packet.strip()}")
 # Command buttons style
+
+
 st.markdown("""
     <style>
     .st-key-clockwise button {
@@ -159,23 +176,30 @@ st.markdown("""
 #        ser.write(b"STOP_MOTOR\n")
 
 
-def serial_write_button(name: str, button_key:str, command:str)-> None:
+def serial_write_button(name: str, button_key:str, command:str, position:int)-> None:
     """ Send command to Arduino when button is pressed. 
     Args: name (str): Button name.
     button_key (str): Unique key for the button to avoid Streamlit's key collision and to give it a unique style.
     command (str): Command to send to Arduino."""
+    
     if st.button(name, key=button_key):
-        ser.write(f"{command}\n".encode('utf-8'))
+        st.session_state.cmd_history[position] = command
+        send_all_commands()
+        print(st.session_state.cmd_history)
+        #ser.write(f"{command}\n".encode('utf-8'))
 
 
 col1, col2, col3= st.columns(3)
 with col1:
-    clockwise = serial_write_button("RUN CLOCKWISE", "clockwise", "RUN_CLOCKWISE")
+    clockwise = serial_write_button("RUN CLOCKWISE", "clockwise", "RUN_CLOCKWISE", 0)
 with col2:
-    counterclockwise = serial_write_button("RUN COUNTERCLOCKWISE", "counterclockwise", "RUN_COUNTERCLOCKWISE")
+    counterclockwise = serial_write_button("RUN COUNTERCLOCKWISE", "counterclockwise", "RUN_COUNTERCLOCKWISE", 0)
 with col3:
-    counterclockwise = serial_write_button("STOP MOTOR", "stop", "STOP_MOTOR")
-
+    counterclockwise = serial_write_button("STOP MOTOR", "stop", "STOP_MOTOR", 0)
+with col1:
+    RelayON = serial_write_button("RELAY ON", "relay_on", "ON", 1)
+with col2:
+    RelayOFF = serial_write_button("RELAY OFF", "relay_off", "OFF", 1)
 
 # Sensor data plot
 st.subheader("Live Motor Status")
