@@ -91,7 +91,6 @@ void setup() {
      * stepper.rotate(360);
      */
      //stepper.startRotate(0.05625);
-    delay(1000);
    
 }
 
@@ -124,7 +123,7 @@ void loop() {
         RunCounterClockwise();
 
       } else if (Commands[0] == "STOP_MOTOR"){
-         Serial.println("Motor stopped. \n");
+         Serial.println("Motor stopped.");
          StopMotor();
          
       } else {

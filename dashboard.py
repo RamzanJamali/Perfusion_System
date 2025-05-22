@@ -36,8 +36,7 @@ def connect():
 
 ser = connect()
 time.sleep(0.01)  # Wait for Arduino to reset
-ser.reset_input_buffer()
-ser.reset_output_buffer()
+
 
 
 # ————— DATA BUFFER —————
@@ -55,7 +54,7 @@ def read_serial(buffer):
     """Continuously read lines from serial and append parsed values."""
     while True:
         try:
-            line = ser.read_until(b'\n').decode("utf-8").strip()
+            line = ser.read_until(b"\n").decode("utf-8").strip()
             if line == "":
                 continue
             line = (f"Arduino response: {line}")
