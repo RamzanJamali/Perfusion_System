@@ -64,6 +64,8 @@ const char delimiter = ',';
 const int maxCommands = 2;
 String Commands[maxCommands] = {"STOP_MOTOR", "OFF"};
 
+bool connected = 1;
+
 void setup() {
     pinMode(ENABLE_PIN, OUTPUT);
     digitalWrite(ENABLE_PIN, LOW);
@@ -84,53 +86,49 @@ void setup() {
      */
     stepper.setSpeedProfile(stepper.LINEAR_SPEED, MOTOR_ACCEL, MOTOR_DECEL);
 
-    Serial.println("START");
+    Serial.println("OK");
     /*
      * Using non-blocking mode to print out the step intervals.
      * We could have just as easily replace everything below this line with 
      * stepper.rotate(360);
      */
      //stepper.startRotate(0.05625);
+     //delay(5000);
    
 }
 
 void loop() {
-
-   
    if (Serial.available()) {
     inputString = Serial.readStringUntil('\n'); // Read until newline
     inputString.trim();
-    CommandParser(inputString, Commands);
-   }
-/*
-     if (Serial.available() ) {
-      String new_Command = Serial.readStringUntil('\n');
-      new_Command.trim();
-      if (new_Command != 0) {
-         Commands[0] = new_Command;
-      } else {
-         //Commands = Commands;
-      }
+    if (inputString == "STATUS"){
+      Status();
     }
-*/
+    else if (inputString != Commands[0]+","+Commands[1]) {
+      CommandParser(inputString, Commands);
+      Serial.println(Commands[0]+","+Commands[1]);
+    }
+    else{
+    }
+   }
 
     if (Commands[0] == "RUN_CLOCKWISE") {
-        Serial.println("Motor running clockwise.");
+        //Serial.println("Motor running clockwise.");
         RunClockwise();
         
       } else if (Commands[0] == "RUN_COUNTERCLOCKWISE") {
-        Serial.println("Motor running counterclockwise.");
+        //Serial.println("Motor running counterclockwise.");
         RunCounterClockwise();
 
       } else if (Commands[0] == "STOP_MOTOR"){
-         Serial.println("Motor stopped.");
+         //Serial.println("Motor stopped.");
          StopMotor();
          
       } else {
-         Serial.println("Unknown command.");
+         //Serial.println("Unknown command.");
       }
    RelayControl(Commands[1]);
-   
+
    
 }
 
@@ -182,4 +180,9 @@ void CommandParser(String inputString, String *Commands) {
         inputString = inputString.substring(delimiterIndex + 1);
       }
     }
+}
+
+
+void Status(){
+   Serial.println(Commands[0]+","+Commands[1]);
 }
