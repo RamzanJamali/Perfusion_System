@@ -86,7 +86,7 @@ void setup() {
      */
     stepper.setSpeedProfile(stepper.LINEAR_SPEED, MOTOR_ACCEL, MOTOR_DECEL);
 
-    Serial.println("OK");
+    Serial.println("<OK>");
     /*
      * Using non-blocking mode to print out the step intervals.
      * We could have just as easily replace everything below this line with 
@@ -106,7 +106,7 @@ void loop() {
     }
     else if (inputString != Commands[0]+","+Commands[1]) {
       CommandParser(inputString, Commands);
-      Serial.println(Commands[0]+","+Commands[1]);
+      Serial.println("<"+Commands[0]+","+Commands[1]+">");
     }
     else{
     }
@@ -184,5 +184,5 @@ void CommandParser(String inputString, String *Commands) {
 
 
 void Status(){
-   Serial.println(Commands[0]+","+Commands[1]);
+   Serial.println("<"+Commands[0]+","+Commands[1]+">");
 }

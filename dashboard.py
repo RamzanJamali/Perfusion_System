@@ -1,117 +1,44 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
-import serial, serial.tools.list_ports
-import threading, sys, queue
+from serial import Serial
+import threading
 import time
 import pandas as pd
 
 
 # Trigger auto‑refresh every 500 ms (infinite)
-#st_autorefresh(interval=500, limit=None, key="serial_refresh")
+st_autorefresh(interval=500, limit=None, key="serial_refresh")
 
 
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
-baudRate = 115200
-arduinoQueue = queue.Queue()
-localQueue = queue.Queue()
-
-#@st.cache_resource
-def selectArduino():
-    ports = serial.tools.list_ports.comports()
-    choices = []
-    st.write('PORT\tDEVICE\t\t\tMANUFACTURER')
-    for index,value in enumerate(sorted(ports)):
-        if (value.hwid != 'n/a'):
-            choices.append(index)
-            st.write(index, '\t', value.name, '\t', value.manufacturer) # https://pyserial.readthedocs.io/en/latest/tools.html#serial.tools.list_ports.ListPortInfo
-
-    choice = -1
-    while choice not in choices:
-        #answer = input("➜ Select your port: ")
-        answer = st.number_input("Insert a number", value= None)
-        while answer is None:
-            continue
-
-        if int(answer) <= int(max(choices)):
-            choice = int(answer)
-    print('selecting: ', ports[choice].device)
-    return ports[choice].device
+@st.cache_resource
+def connect():
+    BAUD_RATE    = 115200
+    
+    try:
+        ser = Serial(port='COM7', baudrate=BAUD_RATE, timeout=1)
+        return ser
+    
+    except:
+        try:
+            ser = Serial('/dev/ttyUSB0', baudrate=BAUD_RATE, timeout=1)
+            return ser
+        
+        except:
+            try:
+                ser = Serial('/dev/ttyUSB1', baudrate=BAUD_RATE, timeout=1)
+                return ser
+        
+            except Exception as error:
+                st.error("No serial port found. Please check your connection.")
+                return None
 
 
-#def connect():
-#    BAUD_RATE    = 115200
-#    
-#    try:
-#        ser = Serial(port='COM7', baudrate=BAUD_RATE, timeout=1)
-#        return ser
-#    
-#    except:
-#        try:
-#            ser = Serial('/dev/ttyUSB0', baudrate=BAUD_RATE, timeout=1)
-#            return ser
-#        
-#        except:
-#            try:
-#                ser = Serial('/dev/ttyUSB1', baudrate=BAUD_RATE, timeout=1)
-#                return ser
-#        
-#            except Exception as error:
-#                st.error("No serial port found. Please check your connection.")
-#                return None
 
-
-#ser = connect()
-#time.sleep(0.01)  # Wait for Arduino to reset
-#@st.cache_resource
-def listenToArduino():
-    message = b''
-    while True:
-        incoming = arduino.read()
-        if (incoming == b'\n'):
-            arduinoQueue.put(message.decode('utf-8').strip().upper())
-            message = b''
-        else:
-            if ((incoming != b'') and (incoming != b'\r')):
-                 message += incoming
-
-
-#@st.cache_resource
-def listenToLocal():
-    while True:
-        command = sys.stdin.readline().strip().upper()
-        localQueue.put(command)
-
-
-#@st.cache_resource
-def configureUserInput():
-    localThread = threading.Thread(target=listenToLocal, args=())
-    localThread.daemon = True
-    localThread.start()
-
-
-#@st.cache_resource
-def configureArduino():
-    global arduinoPort
-    arduinoPort = selectArduino()
-    global arduino
-    arduino = serial.Serial(arduinoPort, baudrate=baudRate, timeout=.1)
-    arduinoThread = threading.Thread(target=listenToArduino, args=())
-    arduinoThread.daemon = True
-    arduinoThread.start()
-
-
-# ---- CALLBACKS UPON MESSAGES -----
-#@st.cache_resource
-def handleLocalMessage(aMessage):
-    print("=> [" + aMessage + "]")
-    arduino.write(aMessage.encode('utf-8'))
-    arduino.write(bytes('\n', encoding='utf-8'))
-
-
-#@st.cache_resource
-def handleArduinoMessage(aMessage):
-    print("<= [" + aMessage + "]")
-
+# --- Serial port initialization (only once) ---
+if 'ser' not in st.session_state:
+    st.session_state.ser = connect()
+ser = st.session_state.ser
 
 
 # ————— DATA BUFFER —————
@@ -121,50 +48,37 @@ def get_buffer():
     return []
 
 
-configureArduino()                                      # will reboot AVR based Arduinos
-configureUserInput() 
 buffer = get_buffer()
-
-while True:
-    if not arduinoQueue.empty():
-        if arduinoQueue.get() == "OK":
-            break
-print("Arduino Ready")
-
-#while True:
-#    if not arduinoQueue.empty():
-#        handleArduinoMessage(arduinoQueue.get())
-#
-#    if not localQueue.empty():
-#        handleLocalMessage(localQueue.get())
 
 
 # ————— BACKGROUND READER —————
+@st.cache_resource
 def read_serial(buffer):
     """Continuously read lines from serial and append parsed values."""
+    chunk_Array = bytearray()
     while True:
-        if not arduinoQueue.empty():
-            #line = arduino.read_until(b"\n").decode("utf-8").strip()
-            line = arduinoQueue.get()
-            line = (f"Arduino response: {line}")
-                
-            if line:
-                buffer.append((time.time(), line))
-                if len(buffer) > 100:  # keep only the last 100
-                    buffer.pop(0)
 
-#        if line:
- #           try:
-  #              # assume CSV-like: "temp,hum"
-   #             temp, hum = map(float, line.split(","))
-    #            timestamp = time.time()
-     #           buffer.append({"time": timestamp, "temp": temp, "hum": hum})
-      #          # keep only the last 100 points
-       #         if len(buffer) > 100:
-        #            buffer.pop(0)
-         #   except Exception:
-                # ignore malformed lines
-          #      pass
+        chunk = ser.read(ser.in_waiting or 1)
+        print(chunk.decode('utf-8'))  # print the raw data for debugging
+
+        if not chunk:
+            continue
+        print(chunk.decode('utf-8'))  # print the raw data for debugging
+        chunk_Array.extend(chunk)
+        
+        while True:
+            try:
+                start_index = chunk_Array.index(b'<')
+                end_index = chunk_Array.index(b'>', start_index + 1)
+            except ValueError:
+                break
+
+            frame = chunk_Array[start_index + 1:end_index]  
+            del chunk_Array[:end_index + 1]  # remove the processed frame
+
+            buffer.append((time.time(), frame.decode('utf-8')))
+            if len(buffer) > 100:  # keep only the last 100
+                buffer.pop(0)
 
 
 # start background thread once
@@ -186,14 +100,13 @@ if "cmd_history" not in st.session_state:
 
 # ---- Send function ----
 def send_all_commands():
-    # join every command with ';' and terminate with newline
+    # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
-    handleLocalMessage(packet)
-    #arduino.write(packet.encode())
+    ser.write(packet.encode())
     st.success(f"Sent: {packet.strip()}")
+
+
 # Command buttons style
-
-
 st.markdown("""
     <style>
     .st-key-clockwise button {
@@ -245,20 +158,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-
-#col1, col2, col3 = st.columns(3)
-#with col1:
-#    if st.button("RUN CLOCKWISE", key="clockwise"):
-#        ser.write(b"RUN_CLOCKWISE\n")
-#
-#with col2:
-#    if st.button("RUN COUNTERCLOCKWISE", key="counterclockwise"):
-#        ser.write(b"RUN_COUNTERCLOCKWISE\n")
-
-#with col3:
-#    if st.button("STOP MOTOR", key="stop"): 
-#        ser.write(b"STOP_MOTOR\n")
 
 
 def serial_write_button(name: str, button_key:str, command:str, position:int)-> None:
