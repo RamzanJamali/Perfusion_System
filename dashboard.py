@@ -4,6 +4,7 @@ from serial import Serial
 import threading
 import time
 import pandas as pd
+import sqlite3
 
 
 # Trigger auto‑refresh every 1000 ms (infinite)
