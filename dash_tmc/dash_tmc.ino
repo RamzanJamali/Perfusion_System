@@ -1,5 +1,14 @@
 #include <MobaTools.h>
 
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+// —– Configuration of sensor —–
+#define DHTPIN     2     // Digital pin connected to the DATA line
+#define DHTTYPE    DHT22 // DHT 22 (AM2302), AM2321
+
+
 const byte stepPin = 8;
 const byte dirPin = 9;
 const int ENABLE_PIN = 10;
@@ -17,9 +26,13 @@ MoToStepper stepper(stepsPerRev, STEPDIR);
 String inputString = "";
 const char delimiter = ',';
 const int maxCommands = 2;
-String Commands[maxCommands] = {"STOP_MOTOR", "OFF"};
+String Commands[maxCommands] = {"STOP_MOTOR", "OFF",};
 
 bool connected = 1;
+
+// Create sensor object
+DHT dht(DHTPIN, DHTTYPE);
+String TempHumid[3];
 
 void setup() {
 
@@ -37,20 +50,25 @@ void setup() {
     //Serial.setTimeout(500);
 
     Serial.println("<OK>");
+
+    dht.begin();
 }
 
 void loop() {
    if (Serial.available()) {
     inputString = Serial.readStringUntil('\n'); // Read until newline
     inputString.trim();
-    if (inputString == "STATUS"){
+    /*if (inputString == Commands[0]+","+Commands[1]){
       Status();
     }
-    else if (inputString != Commands[0]+","+Commands[1]) {
+    else if */
+   if (inputString != Commands[0]+","+Commands[1]) {
       CommandParser(inputString, Commands);
-      Serial.println("<"+Commands[0]+","+Commands[1]+">");
+      Status();
+      //Serial.println("<"+Commands[0]+","+Commands[1]+">");
     }
     else{
+      //Status();
     }
    }
 
@@ -70,8 +88,11 @@ void loop() {
          //Serial.println("Unknown command.");
       }
    RelayControl(Commands[1]);
-
    
+
+   ReadTemperatureHumidity(TempHumid);
+   Status();
+   delay(500);
 }
 
 
@@ -128,5 +149,23 @@ void CommandParser(String inputString, String *Commands) {
 
 
 void Status(){
-   Serial.println("<"+Commands[0]+","+Commands[1]+">");
+   Serial.println("<"+Commands[0]+", " +Commands[1]+", Humidity:" + TempHumid[0]+"%"+", Temperature:" +TempHumid[1]+" °C / "+"," +TempHumid[2]+" °F" +">");
+}
+
+void ReadTemperatureHumidity(String *TempHumid){
+   // Read humidity (percent)
+  float humidity = dht.readHumidity();
+  // Read temperature in Celsius
+  float temperature = dht.readTemperature();
+  // Optionally read temperature in Fahrenheit
+  float temperatureF = dht.readTemperature(true);
+
+  // Check for failed reads
+  if (isnan(humidity) || isnan(temperature)) {
+   humidity =0; temperature=0; temperatureF=0;
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+   TempHumid[0] = humidity; TempHumid[1]=temperature; TempHumid[2]=temperatureF;
+
 }

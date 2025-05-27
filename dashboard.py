@@ -6,8 +6,8 @@ import time
 import pandas as pd
 
 
-# Trigger auto‑refresh every 500 ms (infinite)
-st_autorefresh(interval=500, limit=None, key="serial_refresh")
+# Trigger auto‑refresh every 1000 ms (infinite)
+st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
 
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
@@ -58,12 +58,12 @@ def read_serial(buffer):
     chunk_Array = bytearray()
     while True:
 
-        chunk = ser.read(ser.in_waiting or 1)
-        print(chunk.decode('utf-8'))  # print the raw data for debugging
+        chunk = ser.read(ser.in_waiting or 2)
+        #print(chunk.decode('utf-8'))  # print the raw data for debugging
 
         if not chunk:
             continue
-        print(chunk.decode('utf-8'))  # print the raw data for debugging
+        #print(chunk.decode('utf-8'))  # print the raw data for debugging
         chunk_Array.extend(chunk)
         
         while True:
@@ -184,6 +184,7 @@ with col1:
     RelayON = serial_write_button("RELAY ON", "relay_on", "ON", 1)
 with col2:
     RelayOFF = serial_write_button("RELAY OFF", "relay_off", "OFF", 1)
+
 
 # Sensor data plot
 st.subheader("Live Motor Status")
