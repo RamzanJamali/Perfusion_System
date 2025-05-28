@@ -1,4 +1,5 @@
 #include <MobaTools.h>
+#include <Perfusion.h>
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
@@ -9,17 +10,16 @@
 #define DHTTYPE    DHT22 // DHT 22 (AM2302), AM2321
 
 
+// Hardware pins
 const byte stepPin = 8;
 const byte dirPin = 9;
-const int ENABLE_PIN = 10;
+const byte enablePin = 10;
+const byte valvePin = 5;
 
-const int motorStepsPerRev = 200; // Full steps per revolution
-const int microsteps = 64;        // Microstepping setting (e.g., 16 for 1/16 microstepping)
-const int stepsPerRev = motorStepsPerRev * microsteps;
+// Create perfusion system
+Perfusion perfusion(stepPin, dirPin, enablePin, valvePin, 
+                    1.5, 120, 200, 64); // Target pressure 1.5, initial speed 120
 
-MoToStepper stepper(stepsPerRev, STEPDIR);
-
-#define Relay 5
 
 // commands for arduino to operate. The structure is as follows: 1. Stepper motor, 2. Relay,
 //String commands[] = {"STOP_MOTOR", "OFF"};
@@ -28,30 +28,18 @@ const char delimiter = ',';
 const int maxCommands = 2;
 String Commands[maxCommands] = {"STOP_MOTOR", "OFF",};
 
-bool connected = 1;
-
 // Create sensor object
 DHT dht(DHTPIN, DHTTYPE);
 String TempHumid[3];
 
 void setup() {
 
-    stepper.attach(stepPin, dirPin);
-    //stepper.attachEnable(enablePin, 10, LOW); // 10ms delay, LOW to enable
-    pinMode(ENABLE_PIN, OUTPUT);
-    digitalWrite(ENABLE_PIN, LOW); // Enable the driver (active-low)
-    stepper.setSpeed(1);                     // Speed in RPM
-    stepper.setRampLen(50);                   // Ramp length in steps
-    stepper.setZero();                        // Set current position as zero
+   Serial.begin(115200);
+   //Serial.setTimeout(500);
+   perfusion.set_end_position(5000); // Set syringe end position
+   Serial.println("<OK>");
 
-    pinMode(Relay, OUTPUT);
-
-    Serial.begin(115200);
-    //Serial.setTimeout(500);
-
-    Serial.println("<OK>");
-
-    dht.begin();
+   dht.begin();
 }
 
 void loop() {
@@ -72,26 +60,48 @@ void loop() {
     }
    }
 
-    if (Commands[0] == "RUN_CLOCKWISE") {
-        //Serial.println("Motor running clockwise.");
-        RunClockwise();
+// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
+   if (Commands[0] == "START_PERFUSION") {
+      //Serial.println("Motor running clockwise.");
+      //RunClockwise();
+      perfusion.start_perfusion();
         
-      } else if (Commands[0] == "RUN_COUNTERCLOCKWISE") {
-        //Serial.println("Motor running counterclockwise.");
-        RunCounterClockwise();
+   } else if (Commands[0] == "PAUSE_PERFUSION") {
+      //Serial.println("Motor running counterclockwise.");
+      //RunCounterClockwise();
+      perfusion.pause_perfusion();
 
-      } else if (Commands[0] == "STOP_MOTOR"){
-         //Serial.println("Motor stopped.");
-         StopMotor();
+   } else if (Commands[0] == "CONTINUE_PERFUSION"){
+      //Serial.println("Motor stopped.");
+      //StopMotor();
+      perfusino.continue_perfusion();
          
-      } else {
-         //Serial.println("Unknown command.");
-      }
-   RelayControl(Commands[1]);
+   } else if (Commands[0] == "END_PERFUSION"{
+      //Serial.println("Unknown command.");
+      perfusion.end_perfusion();
+   } else {
+
+   }
+
+   // Secondary commands
+   if (Commands[1]== "SET_END_POSITION"){
+      perfusion.set_end_position(4000);
+   } else if (Commands[1] == "SET_PRESSURE"){
+      perfusion.set_pressure(100);
+   } else if (Commands[1] == "SET_SPEED"){
+      perfusion.set_speed(2);
+   } else if(Commands[1] == "SET_FLOW_RATE"){
+      perfusion.set_flow_rate(5);
+   } else {
+
+   }
+
+   
    
 
    ReadTemperatureHumidity(TempHumid);
    Status();
+   perfusion.update_data(data);
    delay(500);
 }
 
