@@ -7,6 +7,12 @@ import pandas as pd
 from save_data import SensorDatabase
 
 
+st.set_page_config(
+    page_title="Perfusion Dashboard",
+    page_icon="📊",
+    layout="wide",
+)
+
 # Trigger auto‑refresh every 1000 ms (infinite)
 st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
@@ -96,7 +102,7 @@ st.title("Raspberry Pi ↔️ Arduino Dashboard")
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["STOP_MOTOR", "OFF"]  # Initialize with two empty strings
+    st.session_state.cmd_history = ["START_PERFUSION", "1.736", "6"]  # Initialize with two strings
 
 
 # ---- Send function ----
@@ -110,88 +116,66 @@ def send_all_commands():
 # Command buttons style
 st.markdown("""
     <style>
-    .st-key-clockwise button {
+    .stButton > button {
         background-color: #04AA6D; /* Green */
         color: white;
-        border: 1px solid #28a745; /* Green */
+        border: 3px solid #28a745; /* Green */
     }
-    .st-key-clockwise button:hover {
+    .stButton > button:hover {
         background-color: white;
         color: black;
         border: 3px solid #04AA6D; /* Green */
     }
-    .st-key-clockwise button:focus {
+    .stButton > button:focus {
         background-color: white;
-        color: white;   
+        color: #28a745; /* Green */
         border: 3px solid #04AA6D; /* Green */
     }
-            
-    .st-key-counterclockwise button {
-        background-color: #04AA6D; /* Green */
-        color: white;
-        border: 1px solid #04AA6D; /* Green */
-    }
-    .st-key-counterclockwise button:hover {
-        background-color: white;
-        color: black;
-        border: 3px solid #04AA6D; /* Green */
-    }
-    .st-key-counterclockwise button:focus {
-        background-color: white;
-        color: black;
-        border: 3px solid #04AA6D;
-    }
-            
-    .st-key-stop button {
-        background-color: #008CBA; /* Blue */
-        color: white;   
-        border: 1px solid #008CBA; /* Blue */
-    }
-    .st-key-stop button:hover {
-        background-color: white;
-        color: black;
-        border: 3px solid #008CBA; /* Blue */
-    }
-    .st-key-stop button:focus {
-        background-color: white; 
-        color: black;
-        border: 3px solid #f44336; /* red */
-    }
+
     </style>
 """, unsafe_allow_html=True)
 
 
-def serial_write_button(name: str, button_key:str, command:str, position:int)-> None:
+def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
     """ Send command to Arduino when button is pressed. 
     Args: name (str): Button name.
     button_key (str): Unique key for the button to avoid Streamlit's key collision and to give it a unique style.
     command (str): Command to send to Arduino."""
     
-    if st.button(name, key=button_key):
+    if st.button(name, key=button_key, type="tertiary", use_container_width=False, icon=button_icon):
         st.session_state.cmd_history[position] = command
         send_all_commands()
         print(st.session_state.cmd_history)
         #ser.write(f"{command}\n".encode('utf-8'))
 
 
-col1, col2, col3= st.columns(3)
+col1, col2, col3, col4= st.columns(4)
 with col1:
-    clockwise = serial_write_button("RUN CLOCKWISE", "clockwise", "RUN_CLOCKWISE", 0)
+    clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
 with col2:
-    counterclockwise = serial_write_button("RUN COUNTERCLOCKWISE", "counterclockwise", "RUN_COUNTERCLOCKWISE", 0)
+    counterclockwise = serial_write_button("PAUSE PERFUSION", "pause", "PAUSE_PERFUSION", 0, button_icon='⏸️')
 with col3:
-    counterclockwise = serial_write_button("STOP MOTOR", "stop", "STOP_MOTOR", 0)
+    counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
+with col4:
+    counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
+
+
+
+col1, col2= st.columns(2)
 with col1:
-    RelayON = serial_write_button("RELAY ON", "relay_on", "ON", 1)
+    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=5.0, step=1.0)
+    if new_pressure == None or new_pressure < 0:
+        new_pressure = 6
+    else:
+        new_pressure = new_pressure
+    clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='💨')
 with col2:
-    RelayOFF = serial_write_button("RELAY OFF", "relay_off", "OFF", 1)
-
-
-# example data
-data = "23.5,45.0,1013.25,0.1,0.01,0.02,0.03,1500,CW,50"
-Syringe = Perfusion()
-Syringe.update_data(data)  # Update the Perfusion object with the example data
-
+    new_flow_rate = st.number_input("Flow Rate (µl/min)", min_value=0.0, max_value=10.0, value=1.736, step=0.01)
+    if new_flow_rate == None or new_flow_rate < 0:
+        new_flow_rate = 1.736
+    else:
+        new_flow_rate = new_flow_rate
+    counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
 
 # Sensor data plot
 st.subheader("Live Motor Status")

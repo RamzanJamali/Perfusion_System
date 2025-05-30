@@ -3,9 +3,11 @@
 #include <DHT_U.h>  // Include the DHT Unified Sensor library
 #include <DHT.h>    // Include the DHT library
 
-void ReadTemperatureHumidity(){
+String ReadTempHumidity(byte DHTPIN, byte DHTTYPE) {
   char result[32];
   float humidity; float temperature; float temperatureF;
+  DHT dht(DHTPIN, DHTTYPE);
+  dht.begin();
 
    // Read humidity (percent)
   humidity = dht.readHumidity();
