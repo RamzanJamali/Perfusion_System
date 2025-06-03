@@ -102,7 +102,7 @@ st.title("Raspberry Pi ↔️ Arduino Dashboard")
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1", "1.736"]  # Initialize with THREE strings
+    st.session_state.cmd_history = ["IDLE",  "1", "1.7"]  # Initialize with THREE strings
 
 
 # ---- Send function ----
@@ -170,44 +170,36 @@ with col1:
         new_pressure = new_pressure
     clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='💨')
 with col2:
-    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=100.0, value=1.736, step=0.01)
+    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=100.0, value=1.7, step=0.01)
     if new_flow_rate == None or new_flow_rate < 0:
-        new_flow_rate = 1.736
+        new_flow_rate = 1.7
     else:
         new_flow_rate = new_flow_rate
     counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
 
 # Sensor data plot
 st.subheader("Live Motor Status")
-#df = pd.DataFrame(buffer)
-#if not df.empty:
-    # convert timestamp to datetime for plotting
-#    df["dt"] = pd.to_datetime(df["time"], unit="s")
-#    st.line_chart(df.set_index("dt")[["temp", "hum"]])
-#else:
-#    st.write("Waiting for data...")
 
-# Raw data view
-#if st.checkbox("Show raw buffer"):
-#    st.dataframe(df, use_container_width=True)
+@st.fragment(run_every=1)
+def serial_log():
+    st.markdown("### 🔄 Latest Serial Response:")
+    st.subheader("Full Log")
+    st.write("This log shows the last 100 lines received from the Arduino.")
+    st.write("If you want to see the full log, please check the checkbox below.")
+    if st.checkbox("Show log"):
+        for t, msg in reversed(buffer):
+            st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
+            
 
 placeholder = st.empty()
-
 if buffer:
     latest_time, latest_line = buffer[-1]
-    
+        
     placeholder.text(latest_line)
 
     # Optional: show full log
     with st.sidebar:
-        st.markdown("### 🔄 Latest Serial Response:")
-        st.subheader("Full Log")
-        st.write("This log shows the last 100 lines received from the Arduino.")
-        st.write("If you want to see the full log, please check the checkbox below.")
-        if st.checkbox("Show log"):
-            for t, msg in reversed(buffer):
-                st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
+            serial_log()
 
 else:
     st.warning("No data received yet.")
-

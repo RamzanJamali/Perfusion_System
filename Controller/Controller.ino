@@ -86,12 +86,12 @@ void loop() {
 		//perfusion.set_speed(desired_motor_speed);
 	} else {
 		}
-
+	delay(800);
 	Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
 	//result = ReadTempHumidity(DHTPIN, DHTTYPE);
 	//Status();
 	//perfusion.update_data(data);
-	delay(1000);
+	
 }
 
 void CommandParser(String inputString, String *Commands) {
