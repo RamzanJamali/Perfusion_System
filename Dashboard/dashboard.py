@@ -102,7 +102,7 @@ st.title("Raspberry Pi ↔️ Arduino Dashboard")
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["START_PERFUSION", "1.736", "6"]  # Initialize with two strings
+    st.session_state.cmd_history = ["IDLE",  "1", "1.736"]  # Initialize with THREE strings
 
 
 # ---- Send function ----
@@ -163,14 +163,14 @@ with col4:
 
 col1, col2= st.columns(2)
 with col1:
-    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=5.0, step=1.0)
+    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0)
     if new_pressure == None or new_pressure < 0:
-        new_pressure = 6
+        new_pressure = 1
     else:
         new_pressure = new_pressure
     clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='💨')
 with col2:
-    new_flow_rate = st.number_input("Flow Rate (µl/min)", min_value=0.0, max_value=10.0, value=1.736, step=0.01)
+    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=100.0, value=1.736, step=0.01)
     if new_flow_rate == None or new_flow_rate < 0:
         new_flow_rate = 1.736
     else:

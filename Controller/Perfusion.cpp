@@ -1,7 +1,7 @@
 #include "Perfusion.h"
 
 Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
-                     float target_pressure, float motor_speed,
+                     float target_pressure, float flow_rate,
                      int motorStepsPerRev, int microsteps)
     : stepper(motorStepsPerRev * microsteps, STEPDIR),
       stepPin(stepPin),
@@ -17,7 +17,7 @@ Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
       motor_direction(STOP),
       valve_state(CLOSED),
       current_pressure(0.0),
-      flow_rate(0.0),
+      flow_rate(flow_rate),
       syringe_current_position(0),
       tilt(0.0),
       gyro_x(0.0),
@@ -33,8 +33,8 @@ Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
     digitalWrite(valvePin, LOW); // Close valve initially
     
     // Configure stepper
-    stepper.setSpeed(motor_speed);
-    stepper.setRampLen(50); // Ramp length in steps
+    stepper.setSpeedSteps(flow_rate);
+    stepper.setRampLen(1); // Ramp length in steps
     stepper.setZero(); // Set current position as zero
 }
 
@@ -81,15 +81,16 @@ void Perfusion::update_data(const String& data) {
     }
 }
 
-void Perfusion::move_motor(float speed, MotorDirection direction) {
-    motor_speed = speed;
+void Perfusion::move_motor(float flow, MotorDirection direction) {
+    //motor_speed = speed;
     motor_direction = direction;
     
     // Enable motor driver
     digitalWrite(enablePin, LOW);
     
     // Configure stepper
-    stepper.setSpeed(motor_speed);
+    //stepper.setSpeed(motor_speed);
+    stepper.setSpeedSteps(flow);
     
     if (direction == CW) {
         stepper.rotate(1); // Rotate clockwise
@@ -114,7 +115,7 @@ void Perfusion::start_perfusion() {
     current_command = "Start perfusion";
     
     if (syringe_current_position < syringe_end_position) {
-        move_motor(motor_speed, CCW);
+        move_motor(flow_rate, CCW);
     } else {
         end_perfusion();
     }
@@ -143,7 +144,7 @@ void Perfusion::pause_perfusion() {
 void Perfusion::continue_perfusion() {
     perfusion_state = PERFUSING;
     current_command = "Continue perfusion";
-    move_motor(motor_speed, CCW);
+    move_motor(flow_rate, CCW);
 }
 
 void Perfusion::end_perfusion() {
@@ -160,14 +161,17 @@ void Perfusion::set_pressure(float desired_pressure) {
 
 void Perfusion::set_speed(float desired_speed) {
     motor_speed = desired_speed;
-    if (perfusion_state == PERFUSING) {
-        stepper.setSpeed(motor_speed);
-    }
+    stepper.setSpeed(motor_speed);
 }
 
 void Perfusion::set_flow_rate(float desired_flow_rate) {
-    flow_rate = desired_flow_rate;
+    if (0.58824 * desired_flow_rate >= 1.7) {
+        flow_rate = 0.58824 * desired_flow_rate; // The number 0.58824 is calculated according to 10mL syringe. See notebook for further calculations
+    }
+    else {
+    flow_rate = 1.7;
     // Implement flow-to-speed conversion logic here
+    }
 }
 
 void Perfusion::set_end_position(int position) {
@@ -179,6 +183,7 @@ Perfusion::PerfusionState Perfusion::get_state() const { return perfusion_state;
 float Perfusion::get_current_pressure() const { return current_pressure; }
 float Perfusion::get_target_pressure() const { return target_pressure; }
 float Perfusion::get_motor_speed() const { return motor_speed; }
+float Perfusion::get_steps_per_second() const {return flow_rate;}
 Perfusion::MotorDirection Perfusion::get_motor_direction() const { return motor_direction; }
 int Perfusion::get_syringe_position() const { return syringe_current_position; }
 float Perfusion::get_tilt() const { return tilt; }
