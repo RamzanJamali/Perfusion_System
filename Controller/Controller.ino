@@ -1,25 +1,23 @@
+#include "config.h"
 #include <MobaTools.h>
 #include "Perfusion.h"
-#include "ReadTemperatureHumidity.h"
+//#include "ReadTemperatureHumidity.h"
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
 
-// —– Configuration of sensor —–
-#define DHTPIN     2     // Digital pin connected to the DATA line
-#define DHTTYPE    DHT22 // DHT 22 (AM2302), AM2321
 
-// Hardware pins
-const byte stepPin = 8;
-const byte dirPin = 9;
-const byte enablePin = 10;
-const byte valvePin = 5;
+constexpr uint8_t DHT_TYPE = DHT22;     // Type of sensor: DHT22 (AM2302 / AM2321)
+DHT dht(DHT_PIN, DHT_TYPE);
+
+int at_end_position; //define a numeric variable
+
 
 float desired_flow_rate = 1.7;
 
 // Create perfusion system
-Perfusion perfusion(stepPin, dirPin, enablePin, valvePin, 
+Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
 1.5, desired_flow_rate, 200, 64); // Target pressure 1.5, initial speed 1
 
 // commands for arduino to operate. The structure is as follows: 1. Stepper motor, 2. Relay,
@@ -30,17 +28,32 @@ const int maxCommands = 3;
 String Commands[maxCommands] = {"IDLE", "1", "1.7"}; // {perfusion_state, pressure, flow_rate}
 
 String result;
+String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
 
 void setup() {
 
 	Serial.begin(115200);
 	//Serial.setTimeout(500);
-	perfusion.set_end_position(5000); // Set syringe end position
+	perfusion.set_end_position(0); // Set syringe end position
+	pinMode(LED_PIN, OUTPUT);
+	pinMode(BUTTON_PIN, INPUT);
+	
+  dht.begin();
 	Serial.println("<OK>");
 
 }
 
 void loop() {
+	at_end_position = digitalRead(BUTTON_PIN);
+	perfusion.set_end_position(at_end_position);
+
+	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
+		digitalWrite(LED_PIN,HIGH);
+	}
+	else {
+		digitalWrite(LED_PIN,LOW);
+	}
+
 	if (Serial.available()) {
 		inputString = Serial.readStringUntil('\n'); // Read until newline
 		inputString.trim();
@@ -67,7 +80,7 @@ void loop() {
 		perfusion.pause_perfusion();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
-		perfusion.continue_perfusion();
+		perfusion.start_perfusion();
 
 	} else if (Commands[0] == "END_PERFUSION") {
 		perfusion.end_perfusion();
@@ -86,10 +99,10 @@ void loop() {
 		//perfusion.set_speed(desired_motor_speed);
 	} else {
 		}
-	delay(800);
-	Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
-	//result = ReadTempHumidity(DHTPIN, DHTTYPE);
-	//Status();
+	delay(1000);
+	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
+	result = ReadTemperatureHumidity();
+	Status();
 	//perfusion.update_data(data);
 	
 }
@@ -110,5 +123,28 @@ void CommandParser(String inputString, String *Commands) {
 }
 
 void Status(){
-	Serial.println("<"+Commands[0]+", " +Commands[1]+", " + result+">");
+	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+ ", "+ perfusion.get_steps_per_second()+", "+ result+">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
+}
+
+
+String ReadTemperatureHumidity(){
+  //char result[32];
+  float humidity; float temperature; float temperatureF;
+
+  // Read humidity (percent)
+  humidity = dht.readHumidity();
+  // Read temperature in Celsius
+  temperature = dht.readTemperature();
+  // Optionally read temperature in Fahrenheit
+  //temperatureF = dht.readTemperature(true);
+
+  // Check for failed reads
+  if (isnan(humidity) || isnan(temperature)) {
+  	humidity =0; temperature=0; temperatureF=0;
+  }
+	//String humidtemp = ("Humidity: " + String(humidity) + "% , Temperature: "+ String(temperature) + " °C , TemperatureF: " + String(temperatureF) +" °F");
+	String humidtemp = (String(humidity) + ", "+ String(temperature));
+	return humidtemp;
+
 }

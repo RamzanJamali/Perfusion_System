@@ -14,11 +14,12 @@ Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
       target_pressure(target_pressure),
       syringe_end_position(0),
       motor_speed(motor_speed),
+      current_motor_speed(0),
       motor_direction(STOP),
       valve_state(CLOSED),
-      current_pressure(0.0),
+      current_pressure(2.0),
       flow_rate(flow_rate),
-      syringe_current_position(0),
+      //syringe_current_position(0),
       tilt(0.0),
       gyro_x(0.0),
       gyro_y(0.0),
@@ -66,15 +67,15 @@ void Perfusion::update_data(const String& data) {
                 gyro_z = part.toFloat();
                 break;
             case 7:  // Motor speed
-                // Speed is set by controller, not read from sensor
+                current_motor_speed = part.toFloat();
                 break;
             case 8:  // Motor direction
                 if (part == "CW") motor_direction = CW;
                 else if (part == "CCW") motor_direction = CCW;
                 else motor_direction = STOP;
                 break;
-            case 9:  // Syringe position
-                syringe_current_position = part.toInt();
+            case 9:  // Current State
+                //current_command = part;
                 break;
         }
         param_index++;
@@ -108,14 +109,16 @@ void Perfusion::stop_motor() {
 void Perfusion::open_valve() {
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
     digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
+
 }
 
 void Perfusion::start_perfusion() {
     perfusion_state = PERFUSING;
     current_command = "Start perfusion";
     
-    if (syringe_current_position < syringe_end_position) {
+    if (syringe_end_position == LOW) {
         move_motor(flow_rate, CCW);
+        open_valve();
     } else {
         end_perfusion();
     }
@@ -144,6 +147,7 @@ void Perfusion::pause_perfusion() {
 void Perfusion::continue_perfusion() {
     perfusion_state = PERFUSING;
     current_command = "Continue perfusion";
+
     move_motor(flow_rate, CCW);
 }
 
@@ -185,7 +189,7 @@ float Perfusion::get_target_pressure() const { return target_pressure; }
 float Perfusion::get_motor_speed() const { return motor_speed; }
 float Perfusion::get_steps_per_second() const {return flow_rate;}
 Perfusion::MotorDirection Perfusion::get_motor_direction() const { return motor_direction; }
-int Perfusion::get_syringe_position() const { return syringe_current_position; }
+//int Perfusion::get_syringe_position() const { return syringe_current_position; }
 float Perfusion::get_tilt() const { return tilt; }
 float Perfusion::get_gyro_x() const { return gyro_x; }
 float Perfusion::get_gyro_y() const { return gyro_y; }
