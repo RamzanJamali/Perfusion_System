@@ -1,181 +1,150 @@
+#include "config.h"
 #include <MobaTools.h>
-#include <Perfusion.h>
+#include "Perfusion.h"
+//#include "ReadTemperatureHumidity.h"
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
 
-// —– Configuration of sensor —–
-#define DHTPIN     2     // Digital pin connected to the DATA line
-#define DHTTYPE    DHT22 // DHT 22 (AM2302), AM2321
+
+constexpr uint8_t DHT_TYPE = DHT22;     // Type of sensor: DHT22 (AM2302 / AM2321)
+DHT dht(DHT_PIN, DHT_TYPE);
+
+int at_end_position; //define a numeric variable
 
 
-// Hardware pins
-const byte stepPin = 8;
-const byte dirPin = 9;
-const byte enablePin = 10;
-const byte valvePin = 5;
+float desired_flow_rate = 1.7;
 
 // Create perfusion system
-Perfusion perfusion(stepPin, dirPin, enablePin, valvePin, 
-                    1.5, 120, 200, 64); // Target pressure 1.5, initial speed 120
-
+Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
+1.5, desired_flow_rate, 200, 64); // Target pressure 1.5, initial speed 1
 
 // commands for arduino to operate. The structure is as follows: 1. Stepper motor, 2. Relay,
 //String commands[] = {"STOP_MOTOR", "OFF"};
 String inputString = "";
 const char delimiter = ',';
-const int maxCommands = 2;
-String Commands[maxCommands] = {"STOP_MOTOR", "OFF",};
+const int maxCommands = 3;
+String Commands[maxCommands] = {"IDLE", "1", "1.7"}; // {perfusion_state, pressure, flow_rate}
 
-// Create sensor object
-DHT dht(DHTPIN, DHTTYPE);
-String TempHumid[3];
+String result;
+String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
 
 void setup() {
 
-   Serial.begin(115200);
-   //Serial.setTimeout(500);
-   perfusion.set_end_position(5000); // Set syringe end position
-   Serial.println("<OK>");
+	Serial.begin(115200);
+	//Serial.setTimeout(500);
+	perfusion.set_end_position(0); // Set syringe end position
+	pinMode(LED_PIN, OUTPUT);
+	pinMode(BUTTON_PIN, INPUT);
+	
+  dht.begin();
+	Serial.println("<OK>");
 
-   dht.begin();
 }
 
 void loop() {
-   if (Serial.available()) {
-    inputString = Serial.readStringUntil('\n'); // Read until newline
-    inputString.trim();
-    /*if (inputString == Commands[0]+","+Commands[1]){
+	at_end_position = digitalRead(BUTTON_PIN);
+	perfusion.set_end_position(at_end_position);
+
+	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
+		digitalWrite(LED_PIN,HIGH);
+	}
+	else {
+		digitalWrite(LED_PIN,LOW);
+	}
+
+	if (Serial.available()) {
+		inputString = Serial.readStringUntil('\n'); // Read until newline
+		inputString.trim();
+		Serial.println(inputString);
+		/*if (inputString == Commands[0]+","+Commands[1]){
       Status();
     }
     else if */
-   if (inputString != Commands[0]+","+Commands[1]) {
-      CommandParser(inputString, Commands);
-      Status();
-      //Serial.println("<"+Commands[0]+","+Commands[1]+">");
-    }
-    else{
-      //Status();
-    }
-   }
+		if (inputString != Commands[0]+","+Commands[1]+","+Commands[2]) {
+			CommandParser(inputString, Commands);
+			//Status();
+			//Serial.println("<"+Commands[0]+","+Commands[1]+">");
+		}
+		else{
+			//Status();
+		}
+	}
 
-// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
-   if (Commands[0] == "START_PERFUSION") {
-      //Serial.println("Motor running clockwise.");
-      //RunClockwise();
-      perfusion.start_perfusion();
-        
-   } else if (Commands[0] == "PAUSE_PERFUSION") {
-      //Serial.println("Motor running counterclockwise.");
-      //RunCounterClockwise();
-      perfusion.pause_perfusion();
+	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
+	if (Commands[0] == "START_PERFUSION") {
+		perfusion.start_perfusion();
 
-   } else if (Commands[0] == "CONTINUE_PERFUSION"){
-      //Serial.println("Motor stopped.");
-      //StopMotor();
-      perfusino.continue_perfusion();
-         
-   } else if (Commands[0] == "END_PERFUSION"{
-      //Serial.println("Unknown command.");
-      perfusion.end_perfusion();
-   } else {
+	} else if (Commands[0] == "PAUSE_PERFUSION") {
+		perfusion.pause_perfusion();
 
-   }
+	} else if (Commands[0] == "CONTINUE_PERFUSION"){
+		perfusion.start_perfusion();
 
-   // Secondary commands
-   if (Commands[1]== "SET_END_POSITION"){
-      perfusion.set_end_position(4000);
-   } else if (Commands[1] == "SET_PRESSURE"){
-      perfusion.set_pressure(100);
-   } else if (Commands[1] == "SET_SPEED"){
-      perfusion.set_speed(2);
-   } else if(Commands[1] == "SET_FLOW_RATE"){
-      perfusion.set_flow_rate(5);
-   } else {
+	} else if (Commands[0] == "END_PERFUSION") {
+		perfusion.end_perfusion();
+	} else {
+		}
 
-   }
+	// Secondary commands
+	if (Commands[1] != "1"){
+		perfusion.set_pressure(Commands[1].toFloat());
+	} else {}
 
-   
-   
-
-   ReadTemperatureHumidity(TempHumid);
-   Status();
-   perfusion.update_data(data);
-   delay(500);
+	if(Commands[2].toFloat() != desired_flow_rate){
+		desired_flow_rate = Commands[2].toFloat();
+		perfusion.set_flow_rate(desired_flow_rate);
+		//desired_motor_speed = Commands[2].toFloat();
+		//perfusion.set_speed(desired_motor_speed);
+	} else {
+		}
+	delay(1000);
+	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
+	result = ReadTemperatureHumidity();
+	Status();
+	//perfusion.update_data(data);
+	
 }
-
-
-void RunClockwise(){
-   digitalWrite(ENABLE_PIN, LOW);
-   stepper.doSteps(40);
-  //stepper.rotate(1); // Rotate clockwise indefinitely
-   delay(500);
-}
-
-void RunCounterClockwise(){
-   digitalWrite(ENABLE_PIN, LOW);
-   stepper.doSteps(-40);
-  //stepper.rotate(-1); // Rotate counter clockwise indefinitely
-   delay(500);
-}
-
-void StopMotor(){
-   digitalWrite(ENABLE_PIN, HIGH);
-}
-
-
-void RelayControl(String state){
-   if (state=="ON"){
-      digitalWrite(Relay, HIGH);
-      //Serial.println("Relay is turned ON.\n");
-   }
-
-   else if (state=="OFF") {
-      digitalWrite(Relay, LOW);
-      //Serial.println("Relay is turned OFF.\n");
-   }
-
-   else {
-      //Serial.println("Wrong parameter!\n");
-   }
-}
-
 
 void CommandParser(String inputString, String *Commands) {
-   int index = 0;
+	int index = 0;
 
-   while (inputString.length() > 0 && index < maxCommands) {
-      int delimiterIndex = inputString.indexOf(delimiter);
-      if (delimiterIndex == -1) {
-        Commands[index++] = inputString;
-        break;
-      } else {
-        Commands[index++] = inputString.substring(0, delimiterIndex);
-        inputString = inputString.substring(delimiterIndex + 1);
-      }
-    }
+	while (inputString.length() > 0 && index < maxCommands) {
+		int delimiterIndex = inputString.indexOf(delimiter);
+		if (delimiterIndex == -1) {
+			Commands[index++] = inputString;
+			break;
+		} else {
+			Commands[index++] = inputString.substring(0, delimiterIndex);
+			inputString = inputString.substring(delimiterIndex + 1);
+		}
+	}
 }
-
 
 void Status(){
-   Serial.println("<"+Commands[0]+", " +Commands[1]+", Humidity:" + TempHumid[0]+"%"+", Temperature:" +TempHumid[1]+" °C / "+"," +TempHumid[2]+" °F" +">");
+	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+ ", "+ perfusion.get_steps_per_second()+", "+ result+">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
 }
 
-void ReadTemperatureHumidity(String *TempHumid){
-   // Read humidity (percent)
-  float humidity = dht.readHumidity();
+
+String ReadTemperatureHumidity(){
+  //char result[32];
+  float humidity; float temperature; float temperatureF;
+
+  // Read humidity (percent)
+  humidity = dht.readHumidity();
   // Read temperature in Celsius
-  float temperature = dht.readTemperature();
+  temperature = dht.readTemperature();
   // Optionally read temperature in Fahrenheit
-  float temperatureF = dht.readTemperature(true);
+  //temperatureF = dht.readTemperature(true);
 
   // Check for failed reads
   if (isnan(humidity) || isnan(temperature)) {
-   humidity =0; temperature=0; temperatureF=0;
-    Serial.println(F("Failed to read from DHT sensor!"));
-    return;
+  	humidity =0; temperature=0; temperatureF=0;
   }
-   TempHumid[0] = humidity; TempHumid[1]=temperature; TempHumid[2]=temperatureF;
+	//String humidtemp = ("Humidity: " + String(humidity) + "% , Temperature: "+ String(temperature) + " °C , TemperatureF: " + String(temperatureF) +" °F");
+	String humidtemp = (String(humidity) + ", "+ String(temperature));
+	return humidtemp;
 
 }

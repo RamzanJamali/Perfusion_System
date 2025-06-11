@@ -14,16 +14,17 @@ class SensorDatabase:
                 CREATE TABLE IF NOT EXISTS sensor_readings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    perfusion_state INTEGER,
+                    valve_state INTEGER,
                     humidity REAL,
                     temperature REAL,
-                    pressure REAL,
+                    current_pressure REAL,
+                    target_pressure REAL,
+                    motor_speed REAL,
                     tilt REAL,
                     gyro_x REAL,
                     gyro_y REAL,
-                    gyro_z REAL,
-                    motor_speed REAL,
-                    motor_direction TEXT,
-                    syringe_position INTEGER
+                    gyro_z REAL
                 )
             ''')
             # Create indexes for fast timestamp-based queries
@@ -37,21 +38,22 @@ class SensorDatabase:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO sensor_readings (
-                    humidity, temperature, pressure, tilt,
-                    gyro_x, gyro_y, gyro_z,
-                    motor_speed, motor_direction, syringe_position
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    perfusion_state, valve_state,
+                    humidity, temperature, current_pressure, target_pressure, motor_speed, 
+                    tilt, gyro_x, gyro_y, gyro_z
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                sensor_data['humidity'],
-                sensor_data['temperature'],
-                sensor_data['pressure'],
-                sensor_data['tilt'],
-                sensor_data['gyro'][0],
-                sensor_data['gyro'][1],
-                sensor_data['gyro'][2],
-                sensor_data['motor_speed'],
-                sensor_data['motor_direction'],
-                sensor_data['syringe_position']
+                sensor_data[0],
+                sensor_data[1],
+                sensor_data[2],
+                sensor_data[3],
+                sensor_data[4],
+                sensor_data[5],
+                sensor_data[6],
+                sensor_data[7],
+                sensor_data[8],
+                sensor_data[9],
+                sensor_data[10]
             ))
             conn.commit()
 

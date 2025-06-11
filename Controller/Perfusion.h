@@ -12,7 +12,7 @@ public:
 
     // Constructor with hardware pin configuration
     Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
-              float target_pressure = 1.0, float motor_speed = 0,
+              float target_pressure = 1.0, float flow_rate=0,
               int motorStepsPerRev = 200, int microsteps = 64);
     
     // Sensor data update
@@ -38,8 +38,9 @@ public:
     float get_current_pressure() const;
     float get_target_pressure() const;
     float get_motor_speed() const;
+    float get_steps_per_second() const;
     MotorDirection get_motor_direction() const;
-    int get_syringe_position() const;
+    //int get_syringe_position() const;
     float get_tilt() const;
     float get_gyro_x() const;
     float get_gyro_y() const;
@@ -66,11 +67,12 @@ private:
     
     // Sensor values
     float motor_speed;
+    float current_motor_speed;
     MotorDirection motor_direction;
     ValveState valve_state;
     float current_pressure;
     float flow_rate;
-    int syringe_current_position;
+    //int syringe_current_position;
     float tilt;
     float gyro_x, gyro_y, gyro_z;
 };
