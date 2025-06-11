@@ -17,6 +17,8 @@ st.set_page_config(
 st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
 
+save_db = SensorDatabase(database_path='sensor_data.db')
+
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
 @st.cache_resource
 def connect():
@@ -189,6 +191,11 @@ def serial_log():
     if st.checkbox("Show log"):
         for t, msg in reversed(buffer):
             st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
+            data_list = [item.strip() for item in msg.split(',')]
+            try:
+                save_db.insert_reading(data_list)
+            except:
+                pass
             
 
 placeholder = st.empty()
@@ -203,3 +210,17 @@ if buffer:
 
 else:
     st.warning("No data received yet.")
+
+
+df = save_db.get_recent_readings(limit=1000)
+
+if df.empty:
+    st.warning("No data available to display.")
+    st.stop()
+
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df = df.sort_values(by='timestamp').reset_index(drop=True)
+df["elapsed_time"] = (df['timestamp'] - df['timestamp'].iloc[0]).dt.total_seconds()
+
+st.subheader("Sensor Data Plot")
+st.dataframe(df)
