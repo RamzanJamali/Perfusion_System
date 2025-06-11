@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from serial import Serial
+import serial.tools.list_ports
 import threading
 import time
 import pandas as pd
@@ -20,29 +21,30 @@ st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 save_db = SensorDatabase(database_path='sensor_data.db')
 
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
-@st.cache_resource
+@st.cache_resource(ttl=3600)
 def connect():
     BAUD_RATE    = 115200
     
-    try:
-        ser = Serial(port='COM7', baudrate=BAUD_RATE, timeout=1)
-        return ser
-    
-    except:
-        try:
-            ser = Serial('/dev/ttyUSB0', baudrate=BAUD_RATE, timeout=1)
-            return ser
-        
-        except:
-            try:
-                ser = Serial('/dev/ttyUSB1', baudrate=BAUD_RATE, timeout=1)
-                return ser
-        
-            except Exception as error:
-                st.error("No serial port found. Please check your connection.")
-                return None
+    ports = serial.tools.list_ports.comports()
+    choices = []
+    for index, value in enumerate(sorted(ports)):
+        if (value.hwid != 'n/a'):
+            choices.append(index)
+            print(index, '\t', value.name, '\t', value.manufacturer)
 
+    #choice = -1
+    #while choice not in choices:
+        #answer = input("➜ Select your port: ")
+        #if answer.isnumeric() and int(answer) <= int(max(choices)):
+        #    choice = int(answer)
+        
+    choice = 0  # Default to the first port for simplicity in this example
+    print('selecting: ', ports[choice].device)
+    port = ports[choice].device
 
+    ser = Serial(port=port, baudrate=BAUD_RATE, timeout=1)
+    time.sleep(1)  # wait for the serial connection to initialize
+    return ser
 
 # --- Serial port initialization (only once) ---
 if 'ser' not in st.session_state:
@@ -66,8 +68,14 @@ def read_serial(buffer):
     """Continuously read lines from serial and append parsed values."""
     chunk_Array = bytearray()
     while True:
+        
+        if ser.in_waiting:
+            chunk = ser.readline()
 
-        chunk = ser.read(ser.in_waiting or 2)
+        else:
+            time.sleep(0.01)  # wait a bit if no data is available
+            continue
+        #chunk = ser.read(ser.in_waiting or 2)
         #print(chunk.decode('utf-8'))  # print the raw data for debugging
 
         if not chunk:
@@ -118,6 +126,9 @@ def send_all_commands():
 # Command buttons style
 st.markdown("""
     <style>
+    [data-testid="stAppViewContainer"] {
+        background-color: white;
+    }
     .stButton > button {
         background-color: #04AA6D; /* Green */
         color: white;
