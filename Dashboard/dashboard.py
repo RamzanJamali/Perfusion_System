@@ -62,18 +62,30 @@ def get_buffer():
 buffer = get_buffer()
 
 
+# ---- Initialize history ----
+if "cmd_history" not in st.session_state:
+    st.session_state.cmd_history = ["IDLE",  "1", "1.7"]  # Initialize with THREE strings
+
+
+# ---- Send function ----
+def send_all_commands():
+    # join every command with ',' and terminate with newline
+    packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
+    ser.write(packet.encode())
+    st.success(f"Sent: {packet.strip()}")
+
+
 # ————— BACKGROUND READER —————
 @st.cache_resource
-def read_serial(buffer):
+def read_serial(buffer, cmd_history):
     """Continuously read lines from serial and append parsed values."""
     chunk_Array = bytearray()
     while True:
-        
         if ser.in_waiting:
-            chunk = ser.readline()
+            chunk = ser.read(55)
 
         else:
-            time.sleep(0.01)  # wait a bit if no data is available
+            time.sleep(0.1)  # wait a bit if no data is available
             continue
         #chunk = ser.read(ser.in_waiting or 2)
         #print(chunk.decode('utf-8'))  # print the raw data for debugging
@@ -90,9 +102,18 @@ def read_serial(buffer):
             except ValueError:
                 break
 
-            frame = chunk_Array[start_index + 1:end_index]  
+            frame = chunk_Array[start_index + 1:end_index]
+            #print(frame.decode('utf-8'))  # print the raw data for debugging
             del chunk_Array[:end_index + 1]  # remove the processed frame
-
+            
+            raw_data = frame.decode('utf-8').strip()
+            data_list = [item.strip() for item in raw_data.split(',')]
+            try:
+                print(cmd_history)
+                if cmd_history == "START_PERFUSION" or "CONTINUE_PERFUSION" :
+                    save_db.insert_reading(data_list)
+            except:
+                pass
             buffer.append((time.time(), frame.decode('utf-8')))
             if len(buffer) > 100:  # keep only the last 100
                 buffer.pop(0)
@@ -101,26 +122,13 @@ def read_serial(buffer):
 # start background thread once
 if "reader" not in st.session_state:
     buffer = get_buffer()
-    t = threading.Thread(target=read_serial, args=(buffer,), daemon=True)
+    t = threading.Thread(target=read_serial, args=(buffer, st.session_state.cmd_history[0]), daemon=True)
     t.start()
     st.session_state.reader = t
 
 
 # ————— ST UI —————
 st.title("Raspberry Pi ↔️ Arduino Dashboard")
-
-
-# ---- Initialize history ----
-if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1", "1.7"]  # Initialize with THREE strings
-
-
-# ---- Send function ----
-def send_all_commands():
-    # join every command with ',' and terminate with newline
-    packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
-    ser.write(packet.encode())
-    st.success(f"Sent: {packet.strip()}")
 
 
 # Command buttons style
@@ -173,7 +181,6 @@ with col4:
     counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
 
 
-
 col1, col2= st.columns(2)
 with col1:
     new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0)
@@ -204,7 +211,8 @@ def serial_log():
             st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
             data_list = [item.strip() for item in msg.split(',')]
             try:
-                save_db.insert_reading(data_list)
+                #save_db.insert_reading(data_list)
+                pass
             except:
                 pass
             
@@ -223,15 +231,30 @@ else:
     st.warning("No data received yet.")
 
 
-df = save_db.get_recent_readings(limit=1000)
+df = pd.DataFrame()
 
-if df.empty:
-    st.warning("No data available to display.")
-    st.stop()
+@st.fragment(run_every=1)
+def read_db(df):
+    new_row = save_db.get_recent_readings()
 
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-df = df.sort_values(by='timestamp').reset_index(drop=True)
-df["elapsed_time"] = (df['timestamp'] - df['timestamp'].iloc[0]).dt.total_seconds()
+    if new_row.empty:
+        st.warning("No data available to display.")
+        st.stop()
 
+    #df['timestamp'] = pd.to_datetime(df['timestamp'])
+    #df = df.sort_values(by='timestamp').reset_index(drop=True)
+    #df["elapsed_time"] = (df['timestamp'] - df['timestamp'].iloc[0]).dt.total_seconds()
+
+    df = pd.concat([new_row, df], ignore_index=True)
+    if len(df) > 1000:
+        df = df.iloc[:-1]
+
+    return df
+
+
+if "df" not in st.session_state:
+    st.session_state.df = df
+
+df = read_db(df)
 st.subheader("Sensor Data Plot")
 st.dataframe(df)
