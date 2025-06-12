@@ -80,7 +80,7 @@ class SensorDatabase:
             ))
             conn.commit()
 
-    def get_recent_readings(self, limit=1):
+    def get_recent_readings(self, limit=1000):
         """Retrieve last N readings efficiently using index"""
         with sqlite3.connect(self.database_path, isolation_level=None) as conn:
             # Use pandas for direct DataFrame conversion

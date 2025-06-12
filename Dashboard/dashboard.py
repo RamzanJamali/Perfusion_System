@@ -1,9 +1,9 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
-from serial import Serial
+from serial import Serial # PySerial library for serial communication
 import serial.tools.list_ports
 import threading
-import time
+import time, datetime
 import pandas as pd
 from save_data import SensorDatabase
 
@@ -18,7 +18,19 @@ st.set_page_config(
 st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
 
-save_db = SensorDatabase(database_path='sensor_data.db')
+# --- Helper to make a unique filename ---
+def make_db_filename():
+    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"databases/perfusion_{now}.db"
+
+
+# --- Initialization in Streamlit main thread ---
+@st.cache_resource
+def init_db():
+    db = [None, None, False]  # [db_instance, db_path, perfusion_on]
+    return db
+
+db = init_db()
 
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
 @st.cache_resource(ttl=3600)
@@ -60,7 +72,6 @@ def get_buffer():
 
 
 buffer = get_buffer()
-
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
@@ -119,7 +130,7 @@ with col2:
 
 # ————— BACKGROUND READER —————
 @st.cache_resource
-def read_serial(buffer):
+def read_serial(buffer, db):
     """Continuously read lines from serial and append parsed values."""
     chunk_Array = bytearray()
     while True:
@@ -150,11 +161,35 @@ def read_serial(buffer):
             
             raw_data = frame.decode('utf-8').strip()
             data_list = [item.strip() for item in raw_data.split(',')]
+
+            cmd = data_list[0]
+            # 1) If START_PERFUSION (cmd == "1"), open a new DB
+            if cmd == "1" and not db[2]:
+                new_path = make_db_filename()
+                db[1] = new_path
+                db[0] = SensorDatabase(database_path=new_path)
+                db[2] = True
+                print(f"Perfusion started → logging to: {new_path}")
+            
+            # 2) If STOP_PERFUSION (cmd == "0"), close out current session
+            if cmd == "0" and db[2]:
+                db[2] = False
+                print(f"Perfusion stopped for: {db[1]}")
+                # (Optionally: db = None)
+
+            # 3) If perfusion is active and we have a db, insert
+            if db[2] and db[0] is not None:
+                try:
+                    db[0].insert_reading(data_list)
+                except Exception as e:
+                    print(f"DB insert failed: {e}")
+            """        
             try:
                 if data_list[0] in ("1", "2"):
                     save_db.insert_reading(data_list)
             except:
                 pass
+            """
             buffer.append((time.time(), frame.decode('utf-8')))
             if len(buffer) > 100:  # keep only the last 100
                 buffer.pop(0)
@@ -163,7 +198,7 @@ def read_serial(buffer):
 # start background thread once
 if "reader" not in st.session_state:
     buffer = get_buffer()
-    t = threading.Thread(target=read_serial, args=(buffer,), daemon=True)
+    t = threading.Thread(target=read_serial, args=(buffer, db), daemon=True)
     t.start()
     st.session_state.reader = t
 
@@ -226,26 +261,43 @@ else:
     st.warning("No data received yet.")
 
 
-df = save_db.get_recent_readings(1000)
+#try:
+#    df = db[0].get_recent_readings(1000)
+#df = save_db.get_recent_readings(1000)
+#except Exception as e:
+#    df = pd.DataFrame()
+#    st.info(f"No data to retrieve: {e}")
+
+df = pd.DataFrame(columns=[
+    "timestamp", "perfusion_state", "valve_state",
+    "humidity", "temperature", "current_pressure", "target_pressure",
+    "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
+])
 
 @st.fragment(run_every=1)
-def read_db(df):
-    new_row = save_db.get_recent_readings()
+def read_db(df, db):
+    try:
+        new_row = db[0].get_recent_readings(1)
 
-    if new_row.empty:
-        st.warning("No data available to display.")
-        st.stop()
+        if new_row.empty:
+            st.info("No data available to display.")
+            st.stop()
 
-    df = pd.concat([new_row, df], ignore_index=True)
-    if len(df) > 1000:
-        df = df.iloc[:-1]
+        df = pd.concat([new_row, df], ignore_index=True)
+        if len(df) > 1000:
+            df = df.iloc[:-1]
 
-    return df
+        return df
+
+    except Exception as e:
+        st.info(f"Database not loaded: {e}")
+        return df
 
 
 if "df" not in st.session_state:
     st.session_state.df = df
 
-df = read_db(df)
+df = read_db(st.session_state.df, db)
+st.session_state.df = df
 st.subheader("Sensor Data Plot")
 st.dataframe(df)
