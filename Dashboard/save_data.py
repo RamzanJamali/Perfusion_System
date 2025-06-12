@@ -34,6 +34,29 @@ class SensorDatabase:
 
     def insert_reading(self, sensor_data):
         """Insert a sensor reading with efficient batch processing"""
+        cleaned = []
+        for item in sensor_data:
+            s = str(item).strip()
+            if not s:
+                continue
+            # try int first, then float
+            try:
+                val = int(s)
+            except ValueError:
+                try:
+                    val = float(s)
+                except ValueError:
+                    # skip non-numeric
+                    continue
+            cleaned.append(val)
+
+        # 2) Validate length
+        if len(cleaned) != 11:
+            raise ValueError(
+                f"Expected 11 numeric fields, but got {len(cleaned)}: {cleaned!r}"
+            )
+        
+        sensor_data = cleaned
         with sqlite3.connect(self.database_path, isolation_level=None) as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -57,7 +80,7 @@ class SensorDatabase:
             ))
             conn.commit()
 
-    def get_recent_readings(self, limit=1000):
+    def get_recent_readings(self, limit=1):
         """Retrieve last N readings efficiently using index"""
         with sqlite3.connect(self.database_path, isolation_level=None) as conn:
             # Use pandas for direct DataFrame conversion

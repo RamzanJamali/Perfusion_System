@@ -75,87 +75,6 @@ def send_all_commands():
     st.success(f"Sent: {packet.strip()}")
 
 
-# ————— BACKGROUND READER —————
-@st.cache_resource
-def read_serial(buffer, cmd_history):
-    """Continuously read lines from serial and append parsed values."""
-    chunk_Array = bytearray()
-    while True:
-        if ser.in_waiting:
-            chunk = ser.read(55)
-
-        else:
-            time.sleep(0.1)  # wait a bit if no data is available
-            continue
-        #chunk = ser.read(ser.in_waiting or 2)
-        #print(chunk.decode('utf-8'))  # print the raw data for debugging
-
-        if not chunk:
-            continue
-        #print(chunk.decode('utf-8'))  # print the raw data for debugging
-        chunk_Array.extend(chunk)
-        
-        while True:
-            try:
-                start_index = chunk_Array.index(b'<')
-                end_index = chunk_Array.index(b'>', start_index + 1)
-            except ValueError:
-                break
-
-            frame = chunk_Array[start_index + 1:end_index]
-            #print(frame.decode('utf-8'))  # print the raw data for debugging
-            del chunk_Array[:end_index + 1]  # remove the processed frame
-            
-            raw_data = frame.decode('utf-8').strip()
-            data_list = [item.strip() for item in raw_data.split(',')]
-            try:
-                print(cmd_history)
-                if cmd_history == "START_PERFUSION" or "CONTINUE_PERFUSION" :
-                    save_db.insert_reading(data_list)
-            except:
-                pass
-            buffer.append((time.time(), frame.decode('utf-8')))
-            if len(buffer) > 100:  # keep only the last 100
-                buffer.pop(0)
-
-
-# start background thread once
-if "reader" not in st.session_state:
-    buffer = get_buffer()
-    t = threading.Thread(target=read_serial, args=(buffer, st.session_state.cmd_history[0]), daemon=True)
-    t.start()
-    st.session_state.reader = t
-
-
-# ————— ST UI —————
-st.title("Raspberry Pi ↔️ Arduino Dashboard")
-
-
-# Command buttons style
-st.markdown("""
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background-color: white;
-    }
-    .stButton > button {
-        background-color: #04AA6D; /* Green */
-        color: white;
-        border: 3px solid #28a745; /* Green */
-    }
-    .stButton > button:hover {
-        background-color: white;
-        color: black;
-        border: 3px solid #04AA6D; /* Green */
-    }
-    .stButton > button:focus {
-        background-color: white;
-        color: #28a745; /* Green */
-        border: 3px solid #04AA6D; /* Green */
-    }
-
-    </style>
-""", unsafe_allow_html=True)
-
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
     """ Send command to Arduino when button is pressed. 
@@ -197,6 +116,88 @@ with col2:
         new_flow_rate = new_flow_rate
     counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
 
+
+# ————— BACKGROUND READER —————
+@st.cache_resource
+def read_serial(buffer):
+    """Continuously read lines from serial and append parsed values."""
+    chunk_Array = bytearray()
+    while True:
+        if ser.in_waiting:
+            chunk = ser.read(55)
+
+        else:
+            time.sleep(0.1)  # wait a bit if no data is available
+            continue
+        #chunk = ser.read(ser.in_waiting or 2)
+        #print(chunk.decode('utf-8'))  # print the raw data for debugging
+
+        if not chunk:
+            continue
+        #print(chunk.decode('utf-8'))  # print the raw data for debugging
+        chunk_Array.extend(chunk)
+        
+        while True:
+            try:
+                start_index = chunk_Array.index(b'<')
+                end_index = chunk_Array.index(b'>', start_index + 1)
+            except ValueError:
+                break
+
+            frame = chunk_Array[start_index + 1:end_index]
+            #print(frame.decode('utf-8'))  # print the raw data for debugging
+            del chunk_Array[:end_index + 1]  # remove the processed frame
+            
+            raw_data = frame.decode('utf-8').strip()
+            data_list = [item.strip() for item in raw_data.split(',')]
+            try:
+                if data_list[0] in ("1", "2"):
+                    save_db.insert_reading(data_list)
+            except:
+                pass
+            buffer.append((time.time(), frame.decode('utf-8')))
+            if len(buffer) > 100:  # keep only the last 100
+                buffer.pop(0)
+
+
+# start background thread once
+if "reader" not in st.session_state:
+    buffer = get_buffer()
+    t = threading.Thread(target=read_serial, args=(buffer,), daemon=True)
+    t.start()
+    st.session_state.reader = t
+
+
+# ————— ST UI —————
+st.title("Raspberry Pi ↔️ Arduino Dashboard")
+
+
+# Command buttons style
+st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background-color: white;
+    }
+    .stButton > button {
+        background-color: #04AA6D; /* Green */
+        color: white;
+        border: 3px solid #28a745; /* Green */
+    }
+    .stButton > button:hover {
+        background-color: white;
+        color: black;
+        border: 3px solid #04AA6D; /* Green */
+    }
+    .stButton > button:focus {
+        background-color: white;
+        color: #28a745; /* Green */
+        border: 3px solid #04AA6D; /* Green */
+    }
+
+    </style>
+""", unsafe_allow_html=True)
+
+
 # Sensor data plot
 st.subheader("Live Motor Status")
 
@@ -209,12 +210,6 @@ def serial_log():
     if st.checkbox("Show log"):
         for t, msg in reversed(buffer):
             st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
-            data_list = [item.strip() for item in msg.split(',')]
-            try:
-                #save_db.insert_reading(data_list)
-                pass
-            except:
-                pass
             
 
 placeholder = st.empty()
@@ -231,7 +226,7 @@ else:
     st.warning("No data received yet.")
 
 
-df = pd.DataFrame()
+df = save_db.get_recent_readings(1000)
 
 @st.fragment(run_every=1)
 def read_db(df):
@@ -240,10 +235,6 @@ def read_db(df):
     if new_row.empty:
         st.warning("No data available to display.")
         st.stop()
-
-    #df['timestamp'] = pd.to_datetime(df['timestamp'])
-    #df = df.sort_values(by='timestamp').reset_index(drop=True)
-    #df["elapsed_time"] = (df['timestamp'] - df['timestamp'].iloc[0]).dt.total_seconds()
 
     df = pd.concat([new_row, df], ignore_index=True)
     if len(df) > 1000:
