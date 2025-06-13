@@ -2,11 +2,13 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from serial import Serial # PySerial library for serial communication
 import serial.tools.list_ports
-import threading
+import threading, os
 import time, datetime
 import pandas as pd
 from save_data import SensorDatabase
 
+# Configurable directory (default to 'databases' but can be changed)
+DB_DIR = os.getenv("DB_DIRECTORY", "databases")
 
 st.set_page_config(
     page_title="Perfusion Dashboard",
@@ -21,7 +23,8 @@ st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 # --- Helper to make a unique filename ---
 def make_db_filename():
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"databases/perfusion_{now}.db"
+    #return f"databases/perfusion_{now}.db"
+    return os.path.join(DB_DIR, f"perfusion_{now}.db")
 
 
 # --- Initialization in Streamlit main thread ---
@@ -113,7 +116,7 @@ with col4:
 
 col1, col2= st.columns(2)
 with col1:
-    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0)
+    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0, key="pressure_input")
     if new_pressure == None or new_pressure < 0:
         new_pressure = 1
     else:
