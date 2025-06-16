@@ -78,7 +78,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1", "1.7"]  # Initialize with THREE strings
+    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "50", "100"]  # Initialize with Five strings
 
 
 # ---- Send function ----
@@ -114,14 +114,15 @@ with col4:
     counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
 
 
-col1, col2= st.columns(2)
+col1, col2, col3, col4= st.columns(4)
 with col1:
     new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0, key="pressure_input")
     if new_pressure == None or new_pressure < 0:
         new_pressure = 1
     else:
         new_pressure = new_pressure
-    clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='💨')
+    clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
+
 with col2:
     new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=100.0, value=1.7, step=0.01)
     if new_flow_rate == None or new_flow_rate < 0:
@@ -129,6 +130,22 @@ with col2:
     else:
         new_flow_rate = new_flow_rate
     counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
+
+with col3:
+    raw_low = st.number_input("Set raw low pressure", min_value=0, max_value=500, value=50, step=1, key="raw_low_input")
+    if raw_low == None or raw_low < 0:
+        raw_low = 1
+    else:
+        raw_low = raw_low
+    set_raw_low = serial_write_button("SET RAW LOW", "low_pressure", str(raw_low), 3, button_icon='⤵️')
+    
+with col4:
+    raw_high = st.number_input("Set raw high pressure", min_value=0, max_value=500, value=100, step=1, key="raw_high_input")
+    if raw_high == None or raw_high < 0:
+        raw_high = 1
+    else:
+        raw_high = raw_high
+    set_raw_high = serial_write_button("SET RAW HIGH", "high_pressure", str(raw_high), 4, button_icon='⤴️')
 
 
 # ————— BACKGROUND READER —————
