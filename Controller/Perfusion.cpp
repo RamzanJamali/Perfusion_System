@@ -159,8 +159,12 @@ void Perfusion::end_perfusion() {
     stop_motor();
 }
 
-void Perfusion::set_pressure(float desired_pressure) {
+void Perfusion::set_target_pressure(float desired_pressure) {
     target_pressure = desired_pressure;
+}
+
+void Perfusion::set_current_pressure(float new_pressure){
+    current_pressure = new_pressure;
 }
 
 void Perfusion::set_speed(float desired_speed) {

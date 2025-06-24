@@ -1,6 +1,7 @@
 #include "config.h"
 #include <MobaTools.h>
 #include "Perfusion.h"
+#include "AS5048A.h"
 //#include "ReadTemperatureHumidity.h"
 
 #include <Adafruit_Sensor.h>
@@ -15,6 +16,7 @@ int at_end_position; //define a numeric variable
 
 
 float desired_flow_rate = 1.7;
+double rpm;
 
 // Initialize variables for pressure sensor
 const int sensorPin1 = A0;    // Analog pin for pressure sensor
@@ -43,9 +45,14 @@ void setup() {
 	Serial.begin(115200);
 	//Serial.setTimeout(500);
 	perfusion.set_end_position(0); // Set syringe end position
-	pinMode(LED_PIN, OUTPUT);
+	//pinMode(LED_PIN, OUTPUT);
 	pinMode(BUTTON_PIN, INPUT);
 	
+	// For AS5048A encoder
+  pinMode(CS_PIN, OUTPUT);
+  digitalWrite(CS_PIN, HIGH);
+  SPI_begin();
+
   dht.begin();
 	Serial.println("<OK>");
 
@@ -55,12 +62,14 @@ void loop() {
 	at_end_position = digitalRead(BUTTON_PIN);
 	perfusion.set_end_position(at_end_position);
 
+/*
 	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
 		digitalWrite(LED_PIN,HIGH);
 	}
 	else {
 		digitalWrite(LED_PIN,LOW);
 	}
+*/
 
 	if (Serial.available()) {
 		inputString = Serial.readStringUntil('\n'); // Read until newline
@@ -97,7 +106,7 @@ void loop() {
 
 	// Secondary commands
 	if (Commands[1] != "1"){
-		perfusion.set_pressure(Commands[1].toFloat());
+		perfusion.set_target_pressure(Commands[1].toFloat());
 	} else {}
 
 	if(Commands[2].toFloat() != desired_flow_rate){
@@ -116,7 +125,7 @@ void loop() {
 		raw_high = Commands[4].toFloat();
 	}
 	
-	perfusion.set_current_pressure = Pressure(low, high, raw_low, raw_high);
+	perfusion.set_current_pressure(Pressure(low, high, raw_low, raw_high));
 
 	delay(1000);
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
@@ -176,5 +185,5 @@ float Pressure(int low, int high, int raw_low, int raw_high) {
   float b = low - m * raw_low ;
   float pressure = m * sensorValue1 + b; // Pressure in cmH2O
   float p = pressure * 0.73553888361413; // Convert pressure to mmHg
-	return p
+	return p;
 }

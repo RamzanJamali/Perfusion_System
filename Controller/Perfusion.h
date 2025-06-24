@@ -28,7 +28,8 @@ public:
     void update();
     
     // Configuration setters
-    void set_pressure(float desired_pressure);
+    void set_target_pressure(float desired_pressure);
+    void set_current_pressure(float new_pressure);
     void set_speed(float desired_speed);
     void set_flow_rate(float desired_flow_rate);
     void set_end_position(int position);
