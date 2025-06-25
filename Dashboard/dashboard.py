@@ -1,3 +1,4 @@
+import logging
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from serial import Serial # PySerial library for serial communication
@@ -6,6 +7,11 @@ import threading, os
 import time, datetime
 import pandas as pd
 from save_data import SensorDatabase
+
+
+for name, l in logging.root.manager.loggerDict.items():
+    if "streamlit" in name:
+        l.disabled = True
 
 # Configurable directory (default to 'databases' but can be changed)
 DB_DIR = os.getenv("DB_DIRECTORY", "databases")
@@ -294,10 +300,18 @@ df = pd.DataFrame(columns=[
     "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
 ])
 
-@st.fragment(run_every=1)
-def read_db(df, db):
+@st.fragment(run_every=0.3)
+def read_db(df, _db):
     try:
-        new_row = db[0].get_recent_readings(1)
+        new_row = _db[0].get_recent_readings(1)
+
+        try:
+            if df.iat[0, 1] == new_row.iat[0, 1]:
+                return df
+            else:
+                pass
+        except:
+            pass
 
         if new_row.empty:
             st.info("No data available to display.")
@@ -319,24 +333,8 @@ def read_db(df, db):
 if "df" not in st.session_state:
     st.session_state.df = df
 
-try:
-    if st.session_state.df.iat[0, 1] == st.session_state.df.iat[1, 1]:
-        print(st.session_state.df.iat[0, 1], st.session_state.df.iat[1, 1])
-        df = st.session_state.df.iloc[1:].reset_index(drop=True)
-        #df = st.session_state.df
-        
 
-    else:
-        print("printing new data")
-        df = read_db(st.session_state.df, db)
-    
-
-except:
-    print("I am here")
-    df = read_db(st.session_state.df, db)
-
-
-#df = read_db(st.session_state.df, db)
+df = read_db(st.session_state.df, db)
 st.session_state.df = df
 st.subheader("Sensor Data Plot")
 st.dataframe(df)
