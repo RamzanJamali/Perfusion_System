@@ -88,3 +88,12 @@ class SensorDatabase:
                 f'SELECT * FROM sensor_readings ORDER BY id DESC LIMIT {limit}',
                 conn
             )
+        
+    def get_reading_by_id(self, reading_id: int):
+        """ Retrieve exactly one reading by its primary-key id. Returns a 1-row DataFrame (empty if no such id exists)."""
+        with sqlite3.connect(self.database_path, isolation_level=None) as conn:
+            return read_sql_query(
+                "SELECT * FROM sensor_readings WHERE id = ?",
+                conn,
+                params=(reading_id,),
+            )

@@ -300,26 +300,39 @@ df = pd.DataFrame(columns=[
     "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
 ])
 
-@st.fragment(run_every=0.3)
-def read_db(df, _db):
-    try:
-        new_row = _db[0].get_recent_readings(1)
 
+
+@st.fragment(run_every=1)
+def read_db(df, _db):
+    
+    try:
         try:
-            if df.iat[0, 1] == new_row.iat[0, 1]:
-                return df
+            if df.empty:
+                id = 1
+            elif df.iat[0,0] is None:
+                id = 1
             else:
-                pass
+                id = df.iat[0,0] + 1
+            
+            print(id)
+
+            new_row = _db[0].get_reading_by_id(id)
+            if new_row.empty:
+                new_row = _db[0].get_recent_readings(id + 1)
+            
         except:
             pass
+
+        #new_row = _db[0].get_recent_readings(1)
+        
 
         if new_row.empty:
             st.info("No data available to display.")
             st.stop()
 
         new_row = new_row.dropna(axis=1, how="all")
-        df = df.dropna(axis=1, how="all")
         df = pd.concat([new_row, df], ignore_index=True)
+        
         if len(df) > 1000:
             df = df.iloc[:-1]
 
@@ -335,6 +348,7 @@ if "df" not in st.session_state:
 
 
 df = read_db(st.session_state.df, db)
+
 st.session_state.df = df
 st.subheader("Sensor Data Plot")
 st.dataframe(df)
