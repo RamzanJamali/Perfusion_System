@@ -17,3 +17,6 @@ constexpr uint8_t VALVE_PIN  =  5;
 
 // ——— AS5048A Encoder ———
 constexpr uint8_t CS_PIN = 10;
+
+// Analog pin for pressure sensor
+constexpr uint8_t PRESSURE_PIN = A0;    

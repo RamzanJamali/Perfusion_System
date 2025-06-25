@@ -78,7 +78,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "50", "100"]  # Initialize with Five strings
+    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "0", "0"]  # Initialize with Five strings
 
 
 # ---- Send function ----
@@ -303,6 +303,8 @@ def read_db(df, db):
             st.info("No data available to display.")
             st.stop()
 
+        new_row = new_row.dropna(axis=1, how="all")
+        df = df.dropna(axis=1, how="all")
         df = pd.concat([new_row, df], ignore_index=True)
         if len(df) > 1000:
             df = df.iloc[:-1]
@@ -317,7 +319,24 @@ def read_db(df, db):
 if "df" not in st.session_state:
     st.session_state.df = df
 
-df = read_db(st.session_state.df, db)
+try:
+    if st.session_state.df.iat[0, 1] == st.session_state.df.iat[1, 1]:
+        print(st.session_state.df.iat[0, 1], st.session_state.df.iat[1, 1])
+        df = st.session_state.df.iloc[1:].reset_index(drop=True)
+        #df = st.session_state.df
+        
+
+    else:
+        print("printing new data")
+        df = read_db(st.session_state.df, db)
+    
+
+except:
+    print("I am here")
+    df = read_db(st.session_state.df, db)
+
+
+#df = read_db(st.session_state.df, db)
 st.session_state.df = df
 st.subheader("Sensor Data Plot")
 st.dataframe(df)

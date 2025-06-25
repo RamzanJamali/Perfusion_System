@@ -19,12 +19,12 @@ float desired_flow_rate = 1.7;
 double rpm;
 
 // Initialize variables for pressure sensor
-const int sensorPin1 = A0;    // Analog pin for pressure sensor
-int sensorValue1 = 0;         // Variable to store raw sensor reading
+
+int raw_pressure = 0;         // Variable to store raw sensor reading
 int low = 5;                  // low pressure in cmH2O
 int high = 10;                 // high pressure in cmH2O
-int raw_low = 0;               // low raw sensor reading
-int raw_high = 0;              // high raw sensor reading
+static int raw_low = 0;               // low raw sensor reading
+static int raw_high = 0;              // high raw sensor reading
 
 // Create perfusion system
 Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
@@ -34,8 +34,8 @@ Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN,
 //String commands[] = {"STOP_MOTOR", "OFF"};
 String inputString = "";
 const char delimiter = ',';
-const int maxCommands = 3;
-String Commands[maxCommands] = {"IDLE", "1", "1.7"}; // {perfusion_state, pressure, flow_rate}
+const int maxCommands = 5;
+String Commands[maxCommands] = {"IDLE", "1", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate}
 
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
@@ -61,6 +61,9 @@ void setup() {
 void loop() {
 	at_end_position = digitalRead(BUTTON_PIN);
 	perfusion.set_end_position(at_end_position);
+
+	// Read the value of pressure sensor
+	raw_pressure = analogRead(PRESSURE_PIN);
 
 /*
 	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
@@ -117,15 +120,20 @@ void loop() {
 	} else {
 		}
 
-	if (Commands[3].toFloat() != -1 & perfusion.get_state() == 0) {
+	if ((Commands[3].toFloat() != -1) && perfusion.get_state() == 0) {
 			raw_low = Commands[3].toFloat();
 	}
 
-	if (Commands[4].toFloat() != -1 & perfusion.get_state() == 0) {
+	if ((Commands[4].toFloat() != -1) && perfusion.get_state() == 0) {
 		raw_high = Commands[4].toFloat();
 	}
 	
-	perfusion.set_current_pressure(Pressure(low, high, raw_low, raw_high));
+	if (raw_low == 0 || raw_high == 0) {
+		perfusion.set_current_pressure(raw_pressure);
+	}
+	else {
+		perfusion.set_current_pressure(Pressure(low, high, raw_low, raw_high, raw_pressure));
+	}
 
 	delay(1000);
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
@@ -151,7 +159,6 @@ void CommandParser(String inputString, String *Commands) {
 }
 
 void Status(){
-	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+ ", "+ perfusion.get_steps_per_second()+", "+ result+">");
 	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
 }
 
@@ -177,13 +184,13 @@ String ReadTemperatureHumidity(){
 
 }
 
-float Pressure(int low, int high, int raw_low, int raw_high) {
+float Pressure(int low, int high, int raw_low, int raw_high, int raw_pressure) {
 	  // Calculate pressure in cmH2O
   float numerator = high - low;
   float denominator = raw_high - raw_low;
   float m = numerator / denominator;
   float b = low - m * raw_low ;
-  float pressure = m * sensorValue1 + b; // Pressure in cmH2O
+  float pressure = m * raw_pressure + b; // Pressure in cmH2O
   float p = pressure * 0.73553888361413; // Convert pressure to mmHg
 	return p;
 }
