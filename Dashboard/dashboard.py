@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # Trigger auto‑refresh every 1000 ms (infinite)
-st_autorefresh(interval=1000, limit=None, key="serial_refresh")
+st_autorefresh(interval=2000, limit=None, key="serial_refresh")
 
 
 # --- Helper to make a unique filename ---
@@ -337,6 +337,7 @@ def read_db_list(_db):
 
 st.subheader("Sensor Data Plot")
 
+st.fragment(run_every=1)
 if db[0] is not None:
     read_db_list(db)
 
@@ -347,4 +348,5 @@ df = pd.DataFrame(st.session_state.data_rows, columns=["id",
     "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
 ])
 
+st.fragment(run_every=1)
 st.dataframe(df)
