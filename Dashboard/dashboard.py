@@ -4,6 +4,7 @@ from streamlit_autorefresh import st_autorefresh
 from serial import Serial # PySerial library for serial communication
 import serial.tools.list_ports
 import threading, os
+from pathlib import Path
 import time, datetime
 import pandas as pd
 from save_data import SensorDatabase
@@ -14,7 +15,8 @@ for name, l in logging.root.manager.loggerDict.items():
         l.disabled = True
 
 # Configurable directory (default to 'databases' but can be changed)
-DB_DIR = os.getenv("DB_DIRECTORY", "databases")
+DB_DIR = Path(os.path.expanduser("~/Downloads/Perfusion_System/databases"))
+DB_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="Perfusion Dashboard",
@@ -30,8 +32,13 @@ st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 def make_db_filename():
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     #return f"databases/perfusion_{now}.db"
-    return os.path.join(DB_DIR, f"perfusion_{now}.db")
+    print(DB_DIR/f"perfusion_{now}")
+    return DB_DIR/f"perfusion_{now}"
 
+
+def ensure_db_file(db_path: Path):
+    if not db_path.exists():
+        db_path.touch()
 
 # --- Initialization in Streamlit main thread ---
 @st.cache_resource
@@ -192,6 +199,7 @@ def read_serial(buffer, db):
             # 1) If START_PERFUSION (cmd == "1"), open a new DB
             if cmd == "1" and not db[2]:
                 new_path = make_db_filename()
+                ensure_db_file(new_path)
                 db[1] = new_path
                 db[0] = SensorDatabase(database_path=new_path)
                 db[2] = True
