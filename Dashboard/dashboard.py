@@ -32,7 +32,6 @@ st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 def make_db_filename():
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     #return f"databases/perfusion_{now}.db"
-    print(DB_DIR/f"perfusion_{now}")
     return DB_DIR/f"perfusion_{now}"
 
 
@@ -302,55 +301,50 @@ else:
 #    df = pd.DataFrame()
 #    st.info(f"No data to retrieve: {e}")
 
-df = pd.DataFrame(columns=[
+# initialize an empty list in Session State
+if "data_rows" not in st.session_state:
+    st.session_state.data_rows = []
+
+@st.fragment(run_every=1)
+def read_db_list(_db):
+    try:
+        # determine next ID to fetch
+        if not st.session_state.data_rows:
+            next_id = 1
+        else:
+            # first element has highest ID
+            next_id = st.session_state.data_rows[0]["id"] + 1
+
+        new_row_df = _db[0].get_reading_by_id(next_id)
+        if new_row_df.empty:
+            return  # nothing to add
+
+        # drop all-null columns
+        new_row_df = new_row_df.dropna(axis=1, how="all")
+        # assume it returns a single-row DataFrame
+        row_dict = new_row_df.iloc[0].to_dict()
+
+        # prepend to the list
+        st.session_state.data_rows.insert(0, row_dict)
+        # cap length at 1000
+        if len(st.session_state.data_rows) > 1000:
+            st.session_state.data_rows.pop()  # drop the oldest
+
+    except Exception as e:
+        st.info(f"Database not loaded: {e}")
+
+# --- in your main app flow ---
+
+st.subheader("Sensor Data Plot")
+
+if db[0] is not None:
+    read_db_list(db)
+
+# convert to DataFrame exactly once per run
+df = pd.DataFrame(st.session_state.data_rows, columns=["id",
     "timestamp", "perfusion_state", "valve_state",
     "humidity", "temperature", "current_pressure", "target_pressure",
     "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
 ])
 
-
-
-@st.fragment(run_every=1)
-def read_db(df, _db):
-    
-    try:
-        try:
-            if df.empty:
-                id = 1
-            elif df.iat[0,0] is None:
-                id = 1
-            else:
-                id = df.iat[0,0] + 1
-            
-            #print(id)
-        except:
-            id = 1
-
-        new_row = _db[0].get_reading_by_id(id)
-        
-        if new_row.empty:
-            return df
-
-        new_row = new_row.dropna(axis=1, how="all")
-        df = pd.concat([new_row, df], ignore_index=True)
-        
-        if len(df) > 1000:
-            df = df.iloc[:-1]
-
-        return df
-
-    except Exception as e:
-        st.info(f"Database not loaded: {e}")
-        return df
-
-
-if "df" not in st.session_state:
-    st.session_state.df = df
-
-
-st.subheader("Sensor Data Plot")
-
-if db[0] is not None:
-    df = read_db(st.session_state.df, db)
-st.session_state.df = df
 st.dataframe(df)
