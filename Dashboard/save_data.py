@@ -13,7 +13,7 @@ class SensorDatabase:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sensor_readings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    timestamp DATETIME DEFAULT (datetime('now', 'localtime')),
                     perfusion_state INTEGER,
                     valve_state INTEGER,
                     humidity REAL,

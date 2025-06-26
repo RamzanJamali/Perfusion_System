@@ -20,3 +20,7 @@ constexpr uint8_t CS_PIN = 10;
 
 // Analog pin for pressure sensor
 constexpr uint8_t PRESSURE_PIN = A0;    
+
+// For Pressure Calculation
+int LOW_PRESSURE = 5; // low pressure in cmH2O
+int HIGH_PRESSURE = 10; // high pressure in cmH2O

@@ -172,6 +172,10 @@ void Perfusion::set_speed(float desired_speed) {
     stepper.setSpeed(motor_speed);
 }
 
+void Perfusion::set_current_motor_speed(float rpm) {
+    current_motor_speed = rpm;
+}
+
 void Perfusion::set_flow_rate(float desired_flow_rate) {
     if (0.58824 * desired_flow_rate >= 1.7) {
         flow_rate = 0.58824 * desired_flow_rate; // The number 0.58824 is calculated according to 10mL syringe. See notebook for further calculations
@@ -191,6 +195,7 @@ Perfusion::PerfusionState Perfusion::get_state() const { return perfusion_state;
 float Perfusion::get_current_pressure() const { return current_pressure; }
 float Perfusion::get_target_pressure() const { return target_pressure; }
 float Perfusion::get_motor_speed() const { return motor_speed; }
+float Perfusion::get_current_motor_speed() const { return current_motor_speed; }
 float Perfusion::get_steps_per_second() const {return flow_rate;}
 Perfusion::MotorDirection Perfusion::get_motor_direction() const { return motor_direction; }
 //int Perfusion::get_syringe_position() const { return syringe_current_position; }

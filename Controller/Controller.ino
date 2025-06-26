@@ -2,6 +2,7 @@
 #include <MobaTools.h>
 #include "Perfusion.h"
 #include "AS5048A.h"
+#include "Pressure.h"
 //#include "ReadTemperatureHumidity.h"
 
 #include <Adafruit_Sensor.h>
@@ -19,10 +20,7 @@ float desired_flow_rate = 1.7;
 double rpm;
 
 // Initialize variables for pressure sensor
-
 int raw_pressure = 0;         // Variable to store raw sensor reading
-int low = 5;                  // low pressure in cmH2O
-int high = 10;                 // high pressure in cmH2O
 static int raw_low = 0;               // low raw sensor reading
 static int raw_high = 0;              // high raw sensor reading
 
@@ -30,12 +28,11 @@ static int raw_high = 0;              // high raw sensor reading
 Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
 1.5, desired_flow_rate, 200, 64); // Target pressure 1.5, initial speed 1
 
-// commands for arduino to operate. The structure is as follows: 1. Stepper motor, 2. Relay,
-//String commands[] = {"STOP_MOTOR", "OFF"};
+// commands for arduino to operate. 
 String inputString = "";
 const char delimiter = ',';
 const int maxCommands = 5;
-String Commands[maxCommands] = {"IDLE", "1", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate}
+String Commands[maxCommands] = {"IDLE", "1", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
 
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
@@ -45,6 +42,7 @@ void setup() {
 	Serial.begin(115200);
 	//Serial.setTimeout(500);
 	perfusion.set_end_position(0); // Set syringe end position
+
 	//pinMode(LED_PIN, OUTPUT);
 	pinMode(BUTTON_PIN, INPUT);
 	
@@ -128,11 +126,14 @@ void loop() {
 		raw_high = Commands[4].toFloat();
 	}
 	
+	rpm = speed_in_rpm(CS_PIN);
+	perfusion.set_current_motor_speed(rpm);
+	
 	if (raw_low == 0 || raw_high == 0) {
 		perfusion.set_current_pressure(raw_pressure);
 	}
 	else {
-		perfusion.set_current_pressure(Pressure(low, high, raw_low, raw_high, raw_pressure));
+		perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
 	}
 
 	delay(1000);
@@ -159,7 +160,8 @@ void CommandParser(String inputString, String *Commands) {
 }
 
 void Status(){
-	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
+	// perfusion.get_motor_speed() will be replaced by flow rate.
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_current_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
 }
 
 
@@ -184,13 +186,3 @@ String ReadTemperatureHumidity(){
 
 }
 
-float Pressure(int low, int high, int raw_low, int raw_high, int raw_pressure) {
-	  // Calculate pressure in cmH2O
-  float numerator = high - low;
-  float denominator = raw_high - raw_low;
-  float m = numerator / denominator;
-  float b = low - m * raw_low ;
-  float pressure = m * raw_pressure + b; // Pressure in cmH2O
-  float p = pressure * 0.73553888361413; // Convert pressure to mmHg
-	return p;
-}

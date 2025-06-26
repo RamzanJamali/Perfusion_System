@@ -33,6 +33,7 @@ public:
     void set_speed(float desired_speed);
     void set_flow_rate(float desired_flow_rate);
     void set_end_position(int position);
+    void set_current_motor_speed(float rpm) ;
     
     // State accessors
     PerfusionState get_state() const;
@@ -47,6 +48,7 @@ public:
     float get_gyro_y() const;
     float get_gyro_z() const;
     ValveState get_valve_state() const;
+    float get_current_motor_speed() const;
 
 private:
     void move_motor(float speed, MotorDirection direction);

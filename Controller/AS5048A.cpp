@@ -64,7 +64,7 @@ double speed_in_rpm(const uint8_t CS_PIN) {
     float dt = (now - prevMicros) * 1e-6f;
 
     // 4) angular speed [rad/s]
-    float omega = delta_angle / dt;
+    float omega = fabsf(delta_angle) / dt;
 
     // 5) convert to RPM: ω (rad/s) * (60 / 2π)
     rpm = omega * (60.0f / (2.0f * PI));
