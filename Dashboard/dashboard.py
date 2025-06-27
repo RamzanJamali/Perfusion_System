@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # Trigger auto‑refresh every 1000 ms (infinite)
-st_autorefresh(interval=1000, limit=None, key="serial_refresh")
+#st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
 
 # --- Helper to make a unique filename ---
@@ -51,6 +51,7 @@ db = init_db()
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
 @st.cache_resource(ttl=3600)
 def connect():
+    
     BAUD_RATE = 115200
 
     ports = serial.tools.list_ports.comports()
@@ -71,6 +72,7 @@ def connect():
     port = ports[choice].device
 
     ser = Serial(port=port, baudrate=BAUD_RATE, timeout=1)
+    
     time.sleep(1)  # wait for the serial connection to initialize
     return ser
 
@@ -96,10 +98,12 @@ if "cmd_history" not in st.session_state:
 
 # ---- Send function ----
 def send_all_commands():
+    
     # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
     ser.write(packet.encode())
     st.success(f"Sent: {packet.strip()}")
+    
 
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
@@ -162,13 +166,15 @@ with col4:
 
 # ————— BACKGROUND READER —————
 @st.cache_resource
-def read_serial(buffer, db):
+def read_serial(buffer, _db):
+    
     """Continuously read lines from serial and append parsed values."""
     chunk_Array = bytearray()
     while True:
+        #start = time.time()
         if ser.in_waiting:
             chunk = ser.read(55)
-
+            #print(f"This function takes {time.time() - start}")
         else:
             time.sleep(0.1)  # wait a bit if no data is available
             continue
@@ -181,6 +187,7 @@ def read_serial(buffer, db):
         chunk_Array.extend(chunk)
         
         while True:
+            #start = time.time()
             try:
                 start_index = chunk_Array.index(b'<')
                 end_index = chunk_Array.index(b'>', start_index + 1)
@@ -196,26 +203,27 @@ def read_serial(buffer, db):
 
             cmd = data_list[0]
             # 1) If START_PERFUSION (cmd == "1"), open a new DB
-            if cmd == "1" and not db[2]:
+            if cmd == "1" and not _db[2]:
                 new_path = make_db_filename()
                 ensure_db_file(new_path)
-                db[1] = new_path
-                db[0] = SensorDatabase(database_path=new_path)
-                db[2] = True
+                _db[1] = new_path
+                _db[0] = SensorDatabase(database_path=new_path)
+                _db[2] = True
                 print(f"Perfusion started → logging to: {new_path}")
             
             # 2) If STOP_PERFUSION (cmd == "0"), close out current session
-            if cmd == "0" and db[2]:
-                db[2] = False
-                print(f"Perfusion stopped for: {db[1]}")
+            if cmd == "0" and _db[2]:
+                _db[2] = False
+                print(f"Perfusion stopped for: {_db[1]}")
                 # (Optionally: db = None)
 
             # 3) If perfusion is active and we have a db, insert
-            if db[2] and db[0] is not None:
+            if _db[2] and _db[0] is not None:
                 try:
-                    db[0].insert_reading(data_list)
+                    _db[0].insert_reading(data_list)
                 except Exception as e:
-                    print(f"DB insert failed: {e}")
+                    #print(f"DB insert failed: {e}")
+                    pass
             """        
             try:
                 if data_list[0] in ("1", "2"):
@@ -226,6 +234,9 @@ def read_serial(buffer, db):
             buffer.append((time.time(), frame.decode('utf-8')))
             if len(buffer) > 100:  # keep only the last 100
                 buffer.pop(0)
+
+            #print(f"This function takes {time.time() - start}")
+        #print(f"This function takes {time.time() - start}")
 
 
 # start background thread once
@@ -271,6 +282,7 @@ st.subheader("Live Motor Status")
 
 @st.fragment(run_every=1)
 def serial_log():
+    #start = time.time()
     st.markdown("### 🔄 Latest Serial Response:")
     st.subheader("Full Log")
     st.write("This log shows the last 100 lines received from the Arduino.")
@@ -278,10 +290,12 @@ def serial_log():
     if st.checkbox("Show log"):
         for t, msg in reversed(buffer):
             st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
+    #print(f"This function takes {time.time() - start}")
             
 
 placeholder = st.empty()
 if buffer:
+    #start = time.time()
     latest_time, latest_line = buffer[-1]
         
     placeholder.text(latest_line)
@@ -289,6 +303,8 @@ if buffer:
     # Optional: show full log
     with st.sidebar:
             serial_log()
+    
+    #print(f"This function takes {time.time() - start}")
 
 else:
     st.warning("No data received yet.")
@@ -305,8 +321,9 @@ else:
 if "data_rows" not in st.session_state:
     st.session_state.data_rows = []
 
-#@st.fragment(run_every=1)
+@st.fragment(run_every=1)
 def read_db_list(_db):
+    #start = time.time()
     try:
         # determine next ID to fetch
         if not st.session_state.data_rows:
@@ -317,31 +334,38 @@ def read_db_list(_db):
 
         new_row_df = _db[0].get_reading_by_id(next_id)
         if new_row_df.empty:
-            return  # nothing to add
+            pass  # nothing to add
+        
+        else:
+            # drop all-null columns
+            new_row_df = new_row_df.dropna(axis=1, how="all")
+            # assume it returns a single-row DataFrame
+            row_dict = new_row_df.iloc[0].to_dict()
 
-        # drop all-null columns
-        new_row_df = new_row_df.dropna(axis=1, how="all")
-        # assume it returns a single-row DataFrame
-        row_dict = new_row_df.iloc[0].to_dict()
+            # prepend to the list
+            st.session_state.data_rows.insert(0, row_dict)
 
-        # prepend to the list
-        st.session_state.data_rows.insert(0, row_dict)
+        
         # cap length at 1000
-        if len(st.session_state.data_rows) > 200:
+        if len(st.session_state.data_rows) > 10:
             st.session_state.data_rows.pop()  # drop the oldest
 
+        st.table(st.session_state.data_rows)
+        #print(f"This function takes {time.time() - start}")
     except Exception as e:
         st.info(f"Database not loaded: {e}")
+        #print(f"This function takes {time.time() - start}")
 
 # --- in your main app flow ---
 
 st.subheader("Sensor Data Plot")
 
-
+read_db_list(db)
 
 # convert to DataFrame exactly once per run
 @st.fragment(run_every=1)
 def show_data():
+    #start = time.time()
     df = pd.DataFrame(st.session_state.data_rows, columns=["id",
         "timestamp", "perfusion_state", "valve_state",
         "humidity", "temperature", "current_pressure", "target_pressure",
@@ -350,7 +374,10 @@ def show_data():
 
     if db[0] is not None:
         read_db_list(db)
-    return df
+    
+    #print(f"This function takes {time.time() - start}")
+    st.session_state.df = df
+    st.dataframe(st.session_state.df)
 
 
-st.dataframe(show_data())
+#show_data()
