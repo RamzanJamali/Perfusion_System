@@ -25,16 +25,17 @@ st.set_page_config(
 )
 
 # Trigger auto‑refresh every 1000 ms (infinite)
-st_autorefresh(interval=2000, limit=None, key="serial_refresh")
+st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
 
 # --- Helper to make a unique filename ---
+@st.cache_resource
 def make_db_filename():
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     #return f"databases/perfusion_{now}.db"
     return DB_DIR/f"perfusion_{now}"
 
-
+@st.cache_resource
 def ensure_db_file(db_path: Path):
     if not db_path.exists():
         db_path.touch()
@@ -50,8 +51,8 @@ db = init_db()
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
 @st.cache_resource(ttl=3600)
 def connect():
-    BAUD_RATE    = 115200
-    
+    BAUD_RATE = 115200
+
     ports = serial.tools.list_ports.comports()
     choices = []
     for index, value in enumerate(sorted(ports)):
@@ -101,7 +102,6 @@ def send_all_commands():
     st.success(f"Sent: {packet.strip()}")
 
 
-
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
     """ Send command to Arduino when button is pressed. 
     Args: name (str): Button name.
@@ -128,7 +128,7 @@ with col4:
 
 col1, col2, col3, col4= st.columns(4)
 with col1:
-    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=100.0, value=1.0, step=1.0, key="pressure_input")
+    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=1000.0, value=1.0, step=1.0, key="pressure_input")
     if new_pressure == None or new_pressure < 0:
         new_pressure = 1
     else:
@@ -136,7 +136,7 @@ with col1:
     clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
 
 with col2:
-    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=100.0, value=1.7, step=0.01)
+    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=1000.0, value=1.7, step=0.01)
     if new_flow_rate == None or new_flow_rate < 0:
         new_flow_rate = 1.7
     else:
@@ -305,7 +305,7 @@ else:
 if "data_rows" not in st.session_state:
     st.session_state.data_rows = []
 
-@st.fragment(run_every=1)
+#@st.fragment(run_every=1)
 def read_db_list(_db):
     try:
         # determine next ID to fetch
@@ -327,7 +327,7 @@ def read_db_list(_db):
         # prepend to the list
         st.session_state.data_rows.insert(0, row_dict)
         # cap length at 1000
-        if len(st.session_state.data_rows) > 1000:
+        if len(st.session_state.data_rows) > 200:
             st.session_state.data_rows.pop()  # drop the oldest
 
     except Exception as e:
@@ -337,16 +337,20 @@ def read_db_list(_db):
 
 st.subheader("Sensor Data Plot")
 
-st.fragment(run_every=1)
-if db[0] is not None:
-    read_db_list(db)
+
 
 # convert to DataFrame exactly once per run
-df = pd.DataFrame(st.session_state.data_rows, columns=["id",
-    "timestamp", "perfusion_state", "valve_state",
-    "humidity", "temperature", "current_pressure", "target_pressure",
-    "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
-])
+@st.fragment(run_every=1)
+def show_data():
+    df = pd.DataFrame(st.session_state.data_rows, columns=["id",
+        "timestamp", "perfusion_state", "valve_state",
+        "humidity", "temperature", "current_pressure", "target_pressure",
+        "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
+    ])
 
-st.fragment(run_every=1)
-st.dataframe(df)
+    if db[0] is not None:
+        read_db_list(db)
+    return df
+
+
+st.dataframe(show_data())
