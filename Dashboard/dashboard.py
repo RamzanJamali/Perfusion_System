@@ -33,7 +33,7 @@ st.set_page_config(
 def make_db_filename():
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     #return f"databases/perfusion_{now}.db"
-    return DB_DIR/f"perfusion_{now}"
+    return DB_DIR/f"perfusion_{now}.db"
 
 @st.cache_resource
 def ensure_db_file(db_path: Path):
