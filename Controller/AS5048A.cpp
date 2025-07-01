@@ -48,7 +48,7 @@ double speed_in_rpm(const uint8_t CS_PIN) {
   static double prevAngle = 0.0;
   static unsigned long prevMicros = 0;
   static double rpm = 0.0;
-
+Work here
   // 1) read current angle + timestamp
   uint16_t raw = read_raw_angle(CS_PIN);
   float angle = raw_to_radians(raw);

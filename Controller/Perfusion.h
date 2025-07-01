@@ -39,7 +39,7 @@ public:
     PerfusionState get_state() const;
     float get_current_pressure() const;
     float get_target_pressure() const;
-    float get_motor_speed() const;
+    double get_motor_speed() const;
     float get_steps_per_second() const;
     MotorDirection get_motor_direction() const;
     //int get_syringe_position() const;

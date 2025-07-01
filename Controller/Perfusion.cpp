@@ -109,6 +109,7 @@ void Perfusion::stop_motor() {
 void Perfusion::open_valve() {
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
     digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
+    Work here!
 
 }
 
@@ -194,7 +195,7 @@ void Perfusion::set_end_position(int position) {
 Perfusion::PerfusionState Perfusion::get_state() const { return perfusion_state; }
 float Perfusion::get_current_pressure() const { return current_pressure; }
 float Perfusion::get_target_pressure() const { return target_pressure; }
-float Perfusion::get_motor_speed() const { return motor_speed; }
+double Perfusion::get_motor_speed() const { return motor_speed; }
 float Perfusion::get_current_motor_speed() const { return current_motor_speed; }
 float Perfusion::get_steps_per_second() const {return flow_rate;}
 Perfusion::MotorDirection Perfusion::get_motor_direction() const { return motor_direction; }

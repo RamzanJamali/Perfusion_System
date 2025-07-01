@@ -297,7 +297,7 @@ placeholder = st.empty()
 if buffer:
     #start = time.time()
     latest_time, latest_line = buffer[-1]
-        
+    Work here  
     placeholder.text(latest_line)
 
     # Optional: show full log
