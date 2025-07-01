@@ -14,9 +14,6 @@ for name, l in logging.root.manager.loggerDict.items():
     if "streamlit" in name:
         l.disabled = True
 
-# Configurable directory (default to 'databases' but can be changed)
-DB_DIR = Path(os.path.expanduser("~/Downloads/Perfusion_System/databases"))
-DB_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="Perfusion Dashboard",
@@ -27,7 +24,6 @@ st.set_page_config(
 # Trigger auto‑refresh every 1000 ms (infinite)
 #st_autorefresh(interval=1000, limit=None, key="serial_refresh")
 
-
 # --- Helper to make a unique filename ---
 @st.cache_resource
 def make_db_filename():
@@ -35,10 +31,12 @@ def make_db_filename():
     #return f"databases/perfusion_{now}.db"
     return DB_DIR/f"perfusion_{now}.db"
 
+
 @st.cache_resource
 def ensure_db_file(db_path: Path):
     if not db_path.exists():
         db_path.touch()
+
 
 # --- Initialization in Streamlit main thread ---
 @st.cache_resource
@@ -46,7 +44,6 @@ def init_db():
     db = [None, None, False]  # [db_instance, db_path, perfusion_on]
     return db
 
-db = init_db()
 
 # ————— CONFIG ————— and ————— SETUP SERIAL —————
 @st.cache_resource(ttl=3600)
@@ -76,11 +73,6 @@ def connect():
     time.sleep(1)  # wait for the serial connection to initialize
     return ser
 
-# --- Serial port initialization (only once) ---
-if 'ser' not in st.session_state:
-    st.session_state.ser = connect()
-ser = st.session_state.ser
-
 
 # ————— DATA BUFFER —————
 @st.cache_resource
@@ -89,22 +81,13 @@ def get_buffer():
     return []
 
 
-buffer = get_buffer()
-
-# ---- Initialize history ----
-if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "0", "0"]  # Initialize with Five strings
-
-
 # ---- Send function ----
 def send_all_commands():
-    
     # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
     ser.write(packet.encode())
     st.success(f"Sent: {packet.strip()}")
     
-
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
     """ Send command to Arduino when button is pressed. 
@@ -119,49 +102,51 @@ def serial_write_button(name: str, button_key:str, command:str, position:int, bu
         #ser.write(f"{command}\n".encode('utf-8'))
 
 
-col1, col2, col3, col4= st.columns(4)
-with col1:
-    clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
-with col2:
-    counterclockwise = serial_write_button("PAUSE PERFUSION", "pause", "PAUSE_PERFUSION", 0, button_icon='⏸️')
-with col3:
-    counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
-with col4:
-    counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
+@st.fragment(run_every=1)
+def button_form():
+    col1, col2, col3, col4= st.columns(4)
+    with col1:
+        clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
+    with col2:
+        counterclockwise = serial_write_button("PAUSE PERFUSION", "pause", "PAUSE_PERFUSION", 0, button_icon='⏸️')
+    with col3:
+        counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
+    with col4:
+        counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
 
 
-col1, col2, col3, col4= st.columns(4)
-with col1:
-    new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=1000.0, value=1.0, step=1.0, key="pressure_input")
-    if new_pressure == None or new_pressure < 0:
-        new_pressure = 1
-    else:
-        new_pressure = new_pressure
-    clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
+    col1, col2, col3, col4= st.columns(4)
+    with col1:
+        new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=1000.0, value=1.0, step=1.0, key="pressure_input")
+        if new_pressure == None or new_pressure < 0:
+            new_pressure = 1
+        else:
+            new_pressure = new_pressure
+        clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
 
-with col2:
-    new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=1000.0, value=1.7, step=0.01)
-    if new_flow_rate == None or new_flow_rate < 0:
-        new_flow_rate = 1.7
-    else:
-        new_flow_rate = new_flow_rate
-    counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
+    with col2:
+        new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=1000.0, value=1.7, step=0.01)
+        if new_flow_rate == None or new_flow_rate < 0:
+            new_flow_rate = 1.7
+        else:
+            new_flow_rate = new_flow_rate
+        counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
 
-with col3:
-    raw_low = st.number_input("Set raw low pressure", min_value=0, max_value=500, value=50, step=1, key="raw_low_input")
-    if raw_low == None or raw_low < 0:
-        raw_low = 1
-    else:
-        raw_low = raw_low
-    set_raw_low = serial_write_button("SET RAW LOW", "low_pressure", str(raw_low), 3, button_icon='⤵️')
-    
-with col4:
-    raw_high = st.number_input("Set raw high pressure", min_value=0, max_value=500, value=100, step=1, key="raw_high_input")
-    if raw_high == None or raw_high < 0:
-        raw_high = 1
-    else:
-        raw_high = raw_high
-    set_raw_high = serial_write_button("SET RAW HIGH", "high_pressure", str(raw_high), 4, button_icon='⤴️')
+    with col3:
+        raw_low = st.number_input("Set raw low pressure", min_value=0, max_value=500, value=50, step=1, key="raw_low_input")
+        if raw_low == None or raw_low < 0:
+            raw_low = 1
+        else:
+            raw_low = raw_low
+        set_raw_low = serial_write_button("SET RAW LOW", "low_pressure", str(raw_low), 3, button_icon='⤵️')
+        
+    with col4:
+        raw_high = st.number_input("Set raw high pressure", min_value=0, max_value=500, value=100, step=1, key="raw_high_input")
+        if raw_high == None or raw_high < 0:
+            raw_high = 1
+        else:
+            raw_high = raw_high
+        set_raw_high = serial_write_button("SET RAW HIGH", "high_pressure", str(raw_high), 4, button_icon='⤴️')
 
 
 # ————— BACKGROUND READER —————
@@ -239,6 +224,102 @@ def read_serial(buffer, _db):
         #print(f"This function takes {time.time() - start}")
 
 
+@st.fragment(run_every=1)
+def serial_log():
+    #start = time.time()
+    st.markdown("### 🔄 Latest Serial Response:")
+    st.subheader("Full Log")
+    st.write("This log shows the last 100 lines received from the Arduino.")
+    st.write("If you want to see the full log, please check the checkbox below.")
+    if st.checkbox("Show log"):
+        for t, msg in reversed(buffer):
+            st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
+    #print(f"This function takes {time.time() - start}")
+   
+
+@st.fragment(run_every=1)
+def read_db_list(_db):
+    #start = time.time()
+    try:
+        # determine next ID to fetch
+        if not st.session_state.data_rows:
+            next_id = 1
+        else:
+            # first element has highest ID
+            next_id = st.session_state.data_rows[0]["id"] + 1
+
+        new_row_df = _db[0].get_reading_by_id(next_id)
+        if new_row_df.empty:
+            pass  # nothing to add
+        
+        else:
+            # drop all-null columns
+            new_row_df = new_row_df.dropna(axis=1, how="all")
+            # assume it returns a single-row DataFrame
+            row_dict = new_row_df.iloc[0].to_dict()
+
+            # prepend to the list
+            st.session_state.data_rows.insert(0, row_dict)
+
+        
+        # cap length at 1000
+        if len(st.session_state.data_rows) > 10:
+            st.session_state.data_rows.pop()  # drop the oldest
+
+        st.table(st.session_state.data_rows)
+        #print(f"This function takes {time.time() - start}")
+    except Exception as e:
+        st.info(f"Database not loaded!")
+        #print(f"This function takes {time.time() - start}")
+
+
+@st.fragment(run_every=1)
+def show_data():
+    #start = time.time()
+    df = pd.DataFrame(st.session_state.data_rows, columns=["id",
+        "timestamp", "perfusion_state", "valve_state",
+        "humidity", "temperature", "current_pressure", "target_pressure",
+        "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
+    ])
+
+    if db[0] is not None:
+        read_db_list(db)
+    
+    #print(f"This function takes {time.time() - start}")
+    st.session_state.df = df
+    st.dataframe(st.session_state.df)
+
+
+@st.fragment(run_every=0.5)
+def show_latest_line(buffer):
+    if len(buffer) < 1:
+        return
+    else:
+        latest_time, latest_line = buffer[-1]
+        placeholder.text(latest_line)
+
+
+# Configurable directory (default to 'databases' but can be changed)
+DB_DIR = Path(os.path.expanduser("~/Downloads/Perfusion_System/databases"))
+DB_DIR.mkdir(parents=True, exist_ok=True)
+
+
+db = init_db()
+
+
+# --- Serial port initialization (only once) ---
+if 'ser' not in st.session_state:
+    st.session_state.ser = connect()
+ser = st.session_state.ser
+
+
+buffer = get_buffer()
+
+# ---- Initialize history ----
+if "cmd_history" not in st.session_state:
+    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "0", "0"]  # Initialize with Five strings
+
+
 # start background thread once
 if "reader" not in st.session_state:
     buffer = get_buffer()
@@ -276,30 +357,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Command buttons
+button_form()
 
 # Sensor data plot
 st.subheader("Live Motor Status")
-
-@st.fragment(run_every=1)
-def serial_log():
-    #start = time.time()
-    st.markdown("### 🔄 Latest Serial Response:")
-    st.subheader("Full Log")
-    st.write("This log shows the last 100 lines received from the Arduino.")
-    st.write("If you want to see the full log, please check the checkbox below.")
-    if st.checkbox("Show log"):
-        for t, msg in reversed(buffer):
-            st.text(f"{time.strftime('%H:%M:%S', time.localtime(t))} → {msg}")
-    #print(f"This function takes {time.time() - start}")
-            
-
 placeholder = st.empty()
 
 #start = time.time()
 try:
-    latest_time, latest_line = buffer[-1]
-    Work here  
-    placeholder.text(latest_line)
+    buffer = get_buffer()
+    show_latest_line(buffer)
 
     # Optional: show full log
     with st.sidebar:
@@ -310,10 +378,6 @@ except:
     st.warning("No data to show!")
     st.rerun()
         
-
-
-
-
 
 #try:
 #    df = db[0].get_recent_readings(1000)
@@ -326,40 +390,6 @@ except:
 if "data_rows" not in st.session_state:
     st.session_state.data_rows = []
 
-@st.fragment(run_every=1)
-def read_db_list(_db):
-    #start = time.time()
-    try:
-        # determine next ID to fetch
-        if not st.session_state.data_rows:
-            next_id = 1
-        else:
-            # first element has highest ID
-            next_id = st.session_state.data_rows[0]["id"] + 1
-
-        new_row_df = _db[0].get_reading_by_id(next_id)
-        if new_row_df.empty:
-            pass  # nothing to add
-        
-        else:
-            # drop all-null columns
-            new_row_df = new_row_df.dropna(axis=1, how="all")
-            # assume it returns a single-row DataFrame
-            row_dict = new_row_df.iloc[0].to_dict()
-
-            # prepend to the list
-            st.session_state.data_rows.insert(0, row_dict)
-
-        
-        # cap length at 1000
-        if len(st.session_state.data_rows) > 10:
-            st.session_state.data_rows.pop()  # drop the oldest
-
-        st.table(st.session_state.data_rows)
-        #print(f"This function takes {time.time() - start}")
-    except Exception as e:
-        st.info(f"Database not loaded!")
-        #print(f"This function takes {time.time() - start}")
 
 # --- in your main app flow ---
 
@@ -368,21 +398,5 @@ st.subheader("Sensor Data Plot")
 read_db_list(db)
 
 # convert to DataFrame exactly once per run
-@st.fragment(run_every=1)
-def show_data():
-    #start = time.time()
-    df = pd.DataFrame(st.session_state.data_rows, columns=["id",
-        "timestamp", "perfusion_state", "valve_state",
-        "humidity", "temperature", "current_pressure", "target_pressure",
-        "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
-    ])
-
-    if db[0] is not None:
-        read_db_list(db)
-    
-    #print(f"This function takes {time.time() - start}")
-    st.session_state.df = df
-    st.dataframe(st.session_state.df)
-
 
 #show_data()
