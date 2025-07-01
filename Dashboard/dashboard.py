@@ -294,20 +294,25 @@ def serial_log():
             
 
 placeholder = st.empty()
-if buffer:
-    #start = time.time()
+
+#start = time.time()
+try:
     latest_time, latest_line = buffer[-1]
     Work here  
     placeholder.text(latest_line)
 
     # Optional: show full log
     with st.sidebar:
-            serial_log()
+        serial_log()
     
     #print(f"This function takes {time.time() - start}")
+except:
+    st.warning("No data to show!")
+    st.rerun()
+        
 
-else:
-    st.warning("No data received yet.")
+
+
 
 
 #try:
@@ -353,7 +358,7 @@ def read_db_list(_db):
         st.table(st.session_state.data_rows)
         #print(f"This function takes {time.time() - start}")
     except Exception as e:
-        st.info(f"Database not loaded: {e}")
+        st.info(f"Database not loaded!")
         #print(f"This function takes {time.time() - start}")
 
 # --- in your main app flow ---
