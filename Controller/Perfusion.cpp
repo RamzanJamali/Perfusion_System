@@ -109,7 +109,8 @@ void Perfusion::stop_motor() {
 void Perfusion::open_valve() {
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
     digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
-    Work here!
+    delay(10);
+    digitalWrite(valvePin, LOW);
 
 }
 

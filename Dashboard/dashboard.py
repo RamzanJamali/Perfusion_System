@@ -290,7 +290,7 @@ def show_data():
     st.dataframe(st.session_state.df)
 
 
-@st.fragment(run_every=0.5)
+@st.fragment(run_every=1)
 def show_latest_line(buffer):
     if len(buffer) < 1:
         return

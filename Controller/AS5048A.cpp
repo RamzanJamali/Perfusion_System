@@ -47,12 +47,38 @@ double raw_to_radians(uint16_t raw) {
 double speed_in_rpm(const uint8_t CS_PIN) {
   static double prevAngle = 0.0;
   static unsigned long prevMicros = 0;
+  unsigned long last_sample_time = 0;
   static double rpm = 0.0;
-Work here
+//Work here
   // 1) read current angle + timestamp
-  uint16_t raw = read_raw_angle(CS_PIN);
-  float angle = raw_to_radians(raw);
+
+  const unsigned long interval = 10000UL; // 10 seconds in miliseconds
   unsigned long now = micros();
+  if (now - last_sample_time >= interval) {
+    uint16_t raw = read_raw_angle(CS_PIN);
+    float angle = raw_to_radians(raw);
+
+    // 2) compute Δangle, correcting for wrap-around
+    float delta_angle = angle - prevAngle;
+    if (delta_angle >  PI) delta_angle -= 2 * PI;
+    if (delta_angle < -PI) delta_angle += 2 * PI;
+    
+
+        // 3) compute Δt in seconds
+    float dt = (now - prevMicros) * 1e-6f;
+
+    // 4) angular speed [rad/s]
+    float omega = fabsf(delta_angle) / dt;
+
+    // 5) convert to RPM: ω (rad/s) * (60 / 2π)
+    rpm = omega * (60.0f / (2.0f * PI));
+
+    prevAngle = angle;
+    prevMicros = now;
+    return rpm;
+  }
+
+/*
 
   if (prevMicros != 0) {
     // 2) compute Δangle, correcting for wrap-around
@@ -78,4 +104,5 @@ Work here
   prevMicros = now;
 
   return rpm;
+  */
 }
