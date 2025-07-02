@@ -18,7 +18,7 @@ int at_end_position; //define a numeric variable
 
 float desired_flow_rate = 1.7;
 double rpm;
-#define sample 50
+#define sample 7000
 // define our CS PIN
 AS5048A ABS(CS_PIN);
 
@@ -151,7 +151,7 @@ void loop() {
 	}
  
   perfusion.open_valve();
-	
+  
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
 	result = ReadTemperatureHumidity();
 	Status();
@@ -176,7 +176,7 @@ void CommandParser(String inputString, String *Commands) {
 
 void Status(){
 	// perfusion.get_motor_speed() will be replaced by flow rate.
-	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ perfusion.get_current_motor_speed() + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,6) + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
 }
 
 

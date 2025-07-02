@@ -1,4 +1,5 @@
 
+
 #include "AS5048A.h"
 
 
@@ -129,7 +130,7 @@ uint16_t AS5048A::get_pos(){
 float AS5048A::get_speed(){
 	float speed;
 	speed = ((abs(diff_AS5048A)*AS5048A_resolution_in_rad)/(sample_all / 1000.0));	// in rad/s ??
-    Serial.println(AS5048A_resolution_in_rad,8);
+    //Serial.println(AS5048A_resolution_in_rad,8);
 	return speed;
 
 }
