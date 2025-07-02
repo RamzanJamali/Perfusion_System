@@ -18,6 +18,9 @@ int at_end_position; //define a numeric variable
 
 float desired_flow_rate = 1.7;
 double rpm;
+#define sample 50
+// define our CS PIN
+AS5048A ABS(CS_PIN);
 
 // Initialize variables for pressure sensor
 int raw_pressure = 0;         // Variable to store raw sensor reading
@@ -49,7 +52,8 @@ void setup() {
 	// For AS5048A encoder
   pinMode(CS_PIN, OUTPUT);
   digitalWrite(CS_PIN, HIGH);
-  SPI_begin();
+
+	ABS.SPI_setup();
 
   dht.begin();
 	Serial.println("<OK>");
@@ -133,7 +137,9 @@ void loop() {
 		raw_high = Commands[4].toFloat();
 	}
 	
-	rpm = speed_in_rpm(CS_PIN);
+	/// place this in your main loop, and it will update every sample time you defined
+	ABS.get_info(sample);
+	rpm = ABS.get_speed();
 	perfusion.set_current_motor_speed(rpm);
 
   raw_pressure = analogRead(PRESSURE_PIN);

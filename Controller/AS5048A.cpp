@@ -1,109 +1,135 @@
+
 #include "AS5048A.h"
 
 
-SPISettings as5048aSPI(1000000, MSBFIRST, SPI_MODE1);
 
 
-void SPI_begin(){
-  SPI.begin();
-}
+#define AS5048A_resolution  0.02197399
+float AS5048A_resolution_in_rad = AS5048A_resolution * 0.01745329 ; 
 
-static double rpm = 0.0;
-
-uint16_t read_raw_angle(const uint8_t CS_PIN) {
-  uint16_t dummy, raw;
-
-  // 1) prime: pull out the OLD register (ignore it)
-  SPI.beginTransaction(as5048aSPI);
-  digitalWrite(CS_PIN, LOW);
-    dummy = SPI.transfer16(0xFFFF);
-  digitalWrite(CS_PIN, HIGH);
-  SPI.endTransaction();
-
-  delayMicroseconds(1); // let the chip update its output register
-
-  // 2) real read: this is the fresh angle + error bit
-  SPI.beginTransaction(as5048aSPI);
-  digitalWrite(CS_PIN, LOW);
-    raw = SPI.transfer16(0xFFFF);
-  digitalWrite(CS_PIN, HIGH);
-  SPI.endTransaction();
-
-  // now *this* is where you check for an error
-  if (raw & 0x4000) {
-    Serial.println("⚠️ AS5048A magnetic error");
-  }
-
-  // finally mask off error + parity, return only the 14-bit angle
-  return raw & 0x3FFF;
-}
-
-
-double raw_to_radians(uint16_t raw) {
-  // raw = 0…16383 maps to 0…2π
-  return (double)raw * (9.0f * PI / 16383.0f);
-}
-
-
-double speed_in_rpm(const uint8_t CS_PIN) {
-  static double prevAngle = 0.0;
-  static unsigned long prevMicros = 0;
-  unsigned long last_sample_time = 0;
+/// globals 
+  uint16_t old_result_AS5048A ;
+  uint32_t previousMillis_AS5048A ;  
+  int16_t diff_AS5048A;
+  int DIR_AS5048A;
+  int16_t res_info_AS5048A;
   
-//Work here
-  // 1) read current angle + timestamp
-
-  const unsigned long interval = 60000UL; // 60 seconds in miliseconds
-  unsigned long now = micros();
-  if (now - last_sample_time >= interval) {
-    uint16_t raw = read_raw_angle(CS_PIN);
-    float angle = raw_to_radians(raw);
-    now = micros();
-    // 2) compute Δangle, correcting for wrap-around
-    float delta_angle = angle - prevAngle;
-    if (delta_angle >  PI) delta_angle -= 2 * PI;
-    if (delta_angle < -PI) delta_angle += 2 * PI;
-    
-
-        // 3) compute Δt in seconds
-    float dt = (now - prevMicros) * 1e-6f;
-
-    // 4) angular speed [rad/s]
-    double omega = fabsf(delta_angle) / dt;
-
-    // 5) convert to RPM: ω (rad/s) * (60 / 2π)
-    rpm = omega * (60.0f / (2.0f * PI));
-
-    prevAngle = angle;
-    prevMicros = now;
-    return rpm;
-  }
-
-/*
-
-  if (prevMicros != 0) {
-    // 2) compute Δangle, correcting for wrap-around
-    float delta_angle = angle - prevAngle;
-    if (delta_angle >  PI) delta_angle -= 2 * PI;
-    if (delta_angle < -PI) delta_angle += 2 * PI;
-
-    // 3) compute Δt in seconds
-    float dt = (now - prevMicros) * 1e-6f;
-
-    // 4) angular speed [rad/s]
-    float omega = fabsf(delta_angle) / dt;
-
-    // 5) convert to RPM: ω (rad/s) * (60 / 2π)
-    rpm = omega * (60.0f / (2.0f * PI));
-
-    Serial.print("RPM: ");
-    Serial.println(rpm, 9);
-  }
-
-  // save for next iteration
-  prevAngle  = angle;
-  prevMicros = now;
-  */
-  return rpm;
   
+  
+  
+  
+AS5048A::AS5048A(int chipSelectPin ){
+  value = chipSelectPin;
+  pinMode(value, OUTPUT);
+  
+}
+
+
+/// sets up our SPI communication parameters
+void AS5048A::SPI_setup(){  
+  
+SPI.begin();
+SPI.setBitOrder(MSBFIRST);
+SPI.setDataMode (SPI_MODE1) ;
+if (F_CPU == 16000000UL){
+    SPI.setClockDivider(SPI_CLOCK_DIV2);  
+}else if(F_CPU == 72000000UL){
+    SPI.setClockDivider(SPI_CLOCK_DIV8);  
+}
+ 
+}
+
+
+
+/// ends SPI communication
+void AS5048A::end_SPI(){
+	SPI.end();
+}
+
+
+
+/// tells us position .
+/// does not depend on any other function .
+/// call this if you dont care about direction and speed or you want to calculate it yourself.
+uint16_t AS5048A::get_raw(){
+  
+uint16_t result ;
+uint16_t result1 ;
+uint16_t result2 ;
+digitalWrite(value, LOW);
+result1 = SPI.transfer(0b00000000);
+result1 &= 0b00111111;  
+result1 = result1 << 8;
+result2 = SPI.transfer(0b00000000); 
+result = result1 | result2;
+digitalWrite(value, HIGH);
+return result; 
+
+}
+
+
+
+/// samples position every sample_all time
+/// using that we can get position, direction and speed
+void AS5048A::get_info(int sample){
+ 
+ 
+  sample_all = sample ;
+  uint32_t currentMillis = millis();
+ 
+  
+// We take sample every sample_all . Time is in ms 
+if(currentMillis-previousMillis_AS5048A >= sample_all ){
+  previousMillis_AS5048A=currentMillis;
+  res_info_AS5048A = AS5048A::get_raw();
+  diff_AS5048A=res_info_AS5048A-old_result_AS5048A;
+
+ 
+ if (diff_AS5048A==0){
+  //do nothing
+}else if (abs(diff_AS5048A) < 8192 ){  // if angle changes less then 180 deg
+ // if diff_AS5048A is positive we are rotating clockwise
+ // if diff_AS5048A is negative we are rotating counterclockwise
+
+     if (diff_AS5048A > 0)
+        DIR_AS5048A = 1;     // rotating clockwise
+     else
+        DIR_AS5048A = 0;    // rotating counterclockwise
+}
+old_result_AS5048A=res_info_AS5048A; 
+
+}
+}
+
+
+
+/// tells us direction 1 clockwise, 0 counterclockwise
+/// call this only if you have  "get_info" in your main loop
+bool AS5048A::get_DIR(){
+bool val;
+val = DIR_AS5048A;
+return val;
+}
+
+
+
+/// tells us position , same as "get_raw" but it is always updated by "get_info"
+/// if you want to know position in that exact moment in code call "get_raw"
+/// call this only if you have  "get_info" in your main loop
+uint16_t AS5048A::get_pos(){
+	uint16_t pos;
+	pos = res_info_AS5048A;
+	return pos;
+}
+
+
+
+/// calculates speed in rad/s 
+/// call this only if you have "get_info" in your main loop
+float AS5048A::get_speed(){
+	float speed;
+	speed = ((abs(diff_AS5048A)*AS5048A_resolution_in_rad)/(sample_all / 1000.0));	// in rad/s ??
+    Serial.println(AS5048A_resolution_in_rad,8);
+	return speed;
+
 }
