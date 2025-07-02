@@ -49,10 +49,11 @@ public:
     float get_gyro_z() const;
     ValveState get_valve_state() const;
     float get_current_motor_speed() const;
+    void open_valve();
 
 private:
     void move_motor(float speed, MotorDirection direction);
-    void open_valve();
+    
     void stop_motor();
     
     // Hardware components

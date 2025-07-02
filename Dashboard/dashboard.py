@@ -299,6 +299,10 @@ def show_latest_line(buffer):
         placeholder.text(latest_line)
 
 
+@st.fragment(run_every=10)
+def repeat_commands():
+    send_all_commands()
+
 # Configurable directory (default to 'databases' but can be changed)
 DB_DIR = Path(os.path.expanduser("~/Downloads/Perfusion_System/databases"))
 DB_DIR.mkdir(parents=True, exist_ok=True)
@@ -317,7 +321,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "1.0", "1.7", "0", "0"]  # Initialize with Five strings
+    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0"]  # Initialize with Five strings
 
 
 # start background thread once
@@ -326,6 +330,9 @@ if "reader" not in st.session_state:
     t = threading.Thread(target=read_serial, args=(buffer, db), daemon=True)
     t.start()
     st.session_state.reader = t
+
+# Send commands 
+repeat_commands()
 
 
 # ————— ST UI —————

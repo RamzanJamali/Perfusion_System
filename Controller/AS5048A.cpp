@@ -8,6 +8,7 @@ void SPI_begin(){
   SPI.begin();
 }
 
+static double rpm = 0.0;
 
 uint16_t read_raw_angle(const uint8_t CS_PIN) {
   uint16_t dummy, raw;
@@ -48,16 +49,16 @@ double speed_in_rpm(const uint8_t CS_PIN) {
   static double prevAngle = 0.0;
   static unsigned long prevMicros = 0;
   unsigned long last_sample_time = 0;
-  static double rpm = 0.0;
+  
 //Work here
   // 1) read current angle + timestamp
 
-  const unsigned long interval = 10000UL; // 10 seconds in miliseconds
+  const unsigned long interval = 60000UL; // 60 seconds in miliseconds
   unsigned long now = micros();
   if (now - last_sample_time >= interval) {
     uint16_t raw = read_raw_angle(CS_PIN);
     float angle = raw_to_radians(raw);
-
+    now = micros();
     // 2) compute Δangle, correcting for wrap-around
     float delta_angle = angle - prevAngle;
     if (delta_angle >  PI) delta_angle -= 2 * PI;
@@ -68,7 +69,7 @@ double speed_in_rpm(const uint8_t CS_PIN) {
     float dt = (now - prevMicros) * 1e-6f;
 
     // 4) angular speed [rad/s]
-    float omega = fabsf(delta_angle) / dt;
+    double omega = fabsf(delta_angle) / dt;
 
     // 5) convert to RPM: ω (rad/s) * (60 / 2π)
     rpm = omega * (60.0f / (2.0f * PI));
@@ -102,7 +103,7 @@ double speed_in_rpm(const uint8_t CS_PIN) {
   // save for next iteration
   prevAngle  = angle;
   prevMicros = now;
-
-  return rpm;
   */
+  return rpm;
+  
 }

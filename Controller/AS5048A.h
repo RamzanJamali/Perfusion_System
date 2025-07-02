@@ -5,6 +5,8 @@
 
 void SPI_begin();
 
+//static double rpm;
+
 uint16_t read_raw_angle(const uint8_t CS_PIN);
 
 double raw_to_radians(uint16_t raw);

@@ -26,13 +26,13 @@ static int raw_high = 0;              // high raw sensor reading
 
 // Create perfusion system
 Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
-1.5, desired_flow_rate, 200, 64); // Target pressure 1.5, initial speed 1
+500, desired_flow_rate, 200, 64); // Target pressure 500, initial speed 1
 
 // commands for arduino to operate. 
 String inputString = "";
 const char delimiter = ',';
 const int maxCommands = 5;
-String Commands[maxCommands] = {"IDLE", "1", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
+String Commands[maxCommands] = {"IDLE", "500", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
 
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
@@ -57,11 +57,18 @@ void setup() {
 }
 
 void loop() {
+  raw_pressure = analogRead(PRESSURE_PIN);
+  if (raw_low == 0 || raw_high == 0) {
+    perfusion.set_current_pressure(raw_pressure);
+  }
+  else {
+    perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
+  }
+  perfusion.open_valve();
 	at_end_position = digitalRead(BUTTON_PIN);
 	perfusion.set_end_position(at_end_position);
 
-	// Read the value of pressure sensor
-	raw_pressure = analogRead(PRESSURE_PIN);
+	
 
 /*
 	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
@@ -128,20 +135,22 @@ void loop() {
 	
 	rpm = speed_in_rpm(CS_PIN);
 	perfusion.set_current_motor_speed(rpm);
-	
+
+  raw_pressure = analogRead(PRESSURE_PIN);
 	if (raw_low == 0 || raw_high == 0) {
 		perfusion.set_current_pressure(raw_pressure);
 	}
 	else {
 		perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
 	}
-
-	delay(1000);
+ 
+  perfusion.open_valve();
+	
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
 	result = ReadTemperatureHumidity();
 	Status();
 	//perfusion.update_data(data);
-	
+	delay(1000);
 }
 
 void CommandParser(String inputString, String *Commands) {
@@ -185,4 +194,3 @@ String ReadTemperatureHumidity(){
 	return humidtemp;
 
 }
-
