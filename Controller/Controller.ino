@@ -18,7 +18,7 @@ int at_end_position; //define a numeric variable
 
 float desired_flow_rate = 1.7;
 double rpm;
-#define sample 1000
+#define sample 200
 // define our CS PIN
 AS5048A ABS(CS_PIN);
 
@@ -41,7 +41,7 @@ String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
 
 
-const uint8_t  MAX_SAMPLES = 10;
+const uint8_t  MAX_SAMPLES = 20;
 float         samples[MAX_SAMPLES];
 uint8_t       sampleCount = 0;
 
@@ -144,7 +144,7 @@ void loop() {
 	
 	/// place this in your main loop, and it will update every sample time you defined
 	ABS.get_info(sample);
-	rpm = averageDelta(ABS.get_pos());
+	rpm = abs(averageDelta(ABS.get_speed()));
 	perfusion.set_current_motor_speed(rpm);
 
   raw_pressure = analogRead(PRESSURE_PIN);
