@@ -40,6 +40,11 @@ String Commands[maxCommands] = {"IDLE", "500", "1.7", "0", "0"}; // {perfusion_s
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
 
+
+const uint8_t  MAX_SAMPLES = 10;
+float         samples[MAX_SAMPLES];
+uint8_t       sampleCount = 0;
+
 void setup() {
 
 	Serial.begin(115200);
@@ -139,7 +144,7 @@ void loop() {
 	
 	/// place this in your main loop, and it will update every sample time you defined
 	ABS.get_info(sample);
-	rpm = ABS.get_pos();
+	rpm = averageDelta(ABS.get_pos());
 	perfusion.set_current_motor_speed(rpm);
 
   raw_pressure = analogRead(PRESSURE_PIN);
@@ -199,4 +204,34 @@ String ReadTemperatureHumidity(){
 	String humidtemp = (String(humidity) + ", "+ String(temperature));
 	return humidtemp;
 
+}
+
+
+
+float averageDelta(float newSample) {
+  // 1) Insert newSample into our rolling buffer
+  if (sampleCount < MAX_SAMPLES) {
+    samples[sampleCount++] = newSample;
+  } else {
+    // shift left, drop samples[0]
+    for (uint8_t i = 0; i < MAX_SAMPLES - 1; i++) {
+      samples[i] = samples[i + 1];
+    }
+    samples[MAX_SAMPLES - 1] = newSample;
+  }
+
+  // 2) If we don't yet have at least two samples, no delta to compute
+  if (sampleCount < 2) {
+    return 0.0;
+  }
+
+  // 3) Sum up differences between consecutive samples
+  float sumDeltas = 0.0;
+  uint8_t delCount = sampleCount - 1;
+  for (uint8_t i = 0; i < delCount; i++) {
+    sumDeltas += (samples[i + 1] - samples[i]);
+  }
+
+  // 4) Return average difference
+  return sumDeltas / delCount;
 }
