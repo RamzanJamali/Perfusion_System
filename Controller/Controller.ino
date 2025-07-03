@@ -19,7 +19,7 @@ int at_end_position; //define a numeric variable
 float desired_flow_rate = 1.7;
 double rpm;
 #define sample 200
-// define our CS PIN
+// define our CS PIN 
 AS5048A ABS(CS_PIN);
 
 // Initialize variables for pressure sensor
