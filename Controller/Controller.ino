@@ -18,7 +18,7 @@ int at_end_position; //define a numeric variable
 
 float desired_flow_rate = 1.7;
 double rpm;
-#define sample 7000
+#define sample 1000
 // define our CS PIN
 AS5048A ABS(CS_PIN);
 
@@ -139,7 +139,7 @@ void loop() {
 	
 	/// place this in your main loop, and it will update every sample time you defined
 	ABS.get_info(sample);
-	rpm = ABS.get_speed();
+	rpm = ABS.get_pos();
 	perfusion.set_current_motor_speed(rpm);
 
   raw_pressure = analogRead(PRESSURE_PIN);
