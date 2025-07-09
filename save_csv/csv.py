@@ -55,11 +55,6 @@ if uploaded_db is not None:
     tmp_file.flush()
     db_path = tmp_file.name
 
-    st.markdown("---")
-
-
-    st.markdown("---")
-
     # Fetch and display readings
     if st.button("🔄 Load All Readings"):
         with st.spinner("Fetching data..."):
@@ -71,7 +66,7 @@ if uploaded_db is not None:
                 st.warning("No readings found in the database.")
             else:
                 st.success(f"Loaded {len(df)} records from sensor_readings.")
-                st.dataframe(df)
+                
 
                 # Offer CSV download
                 csv_buffer = save_dataframe_to_csv(df)
@@ -81,6 +76,7 @@ if uploaded_db is not None:
                     file_name=f"sensor_readings_export.csv",
                     mime="text/csv"
                 )
+                st.dataframe(df)
 else:
     st.info("Please upload a SQLite database file to begin.")
 
