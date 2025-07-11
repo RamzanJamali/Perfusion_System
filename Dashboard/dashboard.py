@@ -238,57 +238,27 @@ def serial_log():
    
 
 @st.fragment(run_every=1)
-def read_db_list(_db):
+def read_db_list(buffer):
     #start = time.time()
     try:
-        # determine next ID to fetch
-        if not st.session_state.data_rows:
-            next_id = 1
-        else:
-            # first element has highest ID
-            next_id = st.session_state.data_rows[0]["id"] + 1
-
-        new_row_df = _db[0].get_reading_by_id(next_id)
-        if new_row_df.empty:
-            pass  # nothing to add
-        
-        else:
-            # drop all-null columns
-            new_row_df = new_row_df.dropna(axis=1, how="all")
-            # assume it returns a single-row DataFrame
-            row_dict = new_row_df.iloc[0].to_dict()
-
-            # prepend to the list
-            st.session_state.data_rows.insert(0, row_dict)
-
-        
-        # cap length at 1000
-        if len(st.session_state.data_rows) > 10:
-            st.session_state.data_rows.pop()  # drop the oldest
+        reversed_buffer = reversed(buffer)
+        t, msg = next(reversed_buffer)  # get the last item
+        new_data = f"{time.strftime('%H:%M:%S', time.localtime(t))} , {msg}"
+        data_splited = [item.strip() for item in new_data.split(',')]
+        #print(data_splited)
+        if len(data_splited) > 1 and data_splited[1] != "0":
+            new_row_df = data_splited
+                # prepend to the list
+            st.session_state.data_rows.insert(1, new_row_df)
+                # cap length at 1000
+            if len(st.session_state.data_rows) > 11:
+                    st.session_state.data_rows.pop()  # drop the oldest 
 
         st.table(st.session_state.data_rows)
-        #print(f"This function takes {time.time() - start}")
+        
     except Exception as e:
         st.info(f"Database not loaded!")
         #print(f"This function takes {time.time() - start}")
-
-
-@st.fragment(run_every=1)
-def show_data():
-    #start = time.time()
-    df = pd.DataFrame(st.session_state.data_rows, columns=["id",
-        "timestamp", "perfusion_state", "valve_state",
-        "humidity", "temperature", "current_pressure", "target_pressure",
-        "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z"
-    ])
-
-    if db[0] is not None:
-        read_db_list(db)
-    
-    #print(f"This function takes {time.time() - start}")
-    st.session_state.df = df
-    st.dataframe(st.session_state.df)
-
 
 @st.fragment(run_every=1)
 def show_latest_line(buffer):
@@ -386,24 +356,14 @@ except:
     st.rerun()
         
 
-#try:
-#    df = db[0].get_recent_readings(1000)
-#df = save_db.get_recent_readings(1000)
-#except Exception as e:
-#    df = pd.DataFrame()
-#    st.info(f"No data to retrieve: {e}")
-
 # initialize an empty list in Session State
 if "data_rows" not in st.session_state:
-    st.session_state.data_rows = []
+    st.session_state.data_rows = [("timestamp", "perfusion_state", "valve_state", "humidity", "temperature", "current_pressure", "target_pressure", "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z")]
 
 
 # --- in your main app flow ---
 
 st.subheader("Sensor Data Plot")
 
-read_db_list(db)
+read_db_list(buffer)
 
-# convert to DataFrame exactly once per run
-
-#show_data()
