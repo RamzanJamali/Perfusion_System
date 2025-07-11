@@ -45,6 +45,8 @@ const uint8_t  MAX_SAMPLES = 20;
 float         samples[MAX_SAMPLES];
 uint8_t       sampleCount = 0;
 
+uint32_t prev_time = 0;
+
 void setup() {
 
 	Serial.begin(115200);
@@ -61,11 +63,17 @@ void setup() {
 	ABS.SPI_setup();
 
   dht.begin();
+
 	Serial.println("<OK>");
 
 }
 
 void loop() {
+	at_end_position = digitalRead(BUTTON_PIN);
+	perfusion.set_end_position(at_end_position);
+
+	result = ReadTemperatureHumidity();
+
   raw_pressure = analogRead(PRESSURE_PIN);
   if (raw_low == 0 || raw_high == 0) {
     perfusion.set_current_pressure(raw_pressure);
@@ -73,20 +81,13 @@ void loop() {
   else {
     perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
   }
-  perfusion.open_valve();
-	at_end_position = digitalRead(BUTTON_PIN);
-	perfusion.set_end_position(at_end_position);
 
-	
+  //perfusion.open_valve();
 
-/*
-	if(at_end_position == HIGH) { // turn on LED when sensor is blocked
-		digitalWrite(LED_PIN,HIGH);
-	}
-	else {
-		digitalWrite(LED_PIN,LOW);
-	}
-*/
+	/// place this in your main loop, and it will update every sample time you defined
+	ABS.get_info(sample);
+	rpm = abs(averageDelta(ABS.get_speed()));
+	perfusion.set_current_motor_speed(rpm);
 
 	if (Serial.available()) {
 		inputString = Serial.readStringUntil('\n'); // Read until newline
@@ -142,10 +143,6 @@ void loop() {
 		raw_high = Commands[4].toFloat();
 	}
 	
-	/// place this in your main loop, and it will update every sample time you defined
-	ABS.get_info(sample);
-	rpm = abs(averageDelta(ABS.get_speed()));
-	perfusion.set_current_motor_speed(rpm);
 
   raw_pressure = analogRead(PRESSURE_PIN);
 	if (raw_low == 0 || raw_high == 0) {
@@ -155,13 +152,19 @@ void loop() {
 		perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
 	}
  
-  perfusion.open_valve();
+  //perfusion.open_valve();
   
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
-	result = ReadTemperatureHumidity();
-	Status();
+	
+
+	uint32_t current_time = millis();
+	if (current_time - prev_time > 999) {
+		prev_time = current_time;
+		Status();
+	}
+	
 	//perfusion.update_data(data);
-	delay(1000);
+	
 }
 
 void CommandParser(String inputString, String *Commands) {
