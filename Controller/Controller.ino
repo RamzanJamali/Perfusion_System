@@ -105,9 +105,9 @@ void loop() {
 		
 	}
 
-	for (int x = 0; x<7; x++){
+	//for (int x = 0; x<7; x++){
 			//Serial.print(Commands[x]);
-			}
+	//		}
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {

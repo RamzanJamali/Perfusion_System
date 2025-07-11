@@ -97,6 +97,9 @@ def serial_write_button(name: str, button_key:str, command:str, position:int, bu
     
     if st.button(name, key=button_key, type="tertiary", use_container_width=False, icon=button_icon):
         st.session_state.cmd_history[position] = command
+        if (st.session_state.cmd_history[0] == "START_PERFUSION") or (st.session_state.cmd_history[0] == "PAUSE_PERFUSION") or (st.session_state.cmd_history[0] == "CONTINUE_PERFUSION"):
+            st.session_state.cmd_history[5] = "0"
+
         send_all_commands()
         print(st.session_state.cmd_history)
         #ser.write(f"{command}\n".encode('utf-8'))
