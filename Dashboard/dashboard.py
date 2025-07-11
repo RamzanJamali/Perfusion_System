@@ -104,7 +104,7 @@ def serial_write_button(name: str, button_key:str, command:str, position:int, bu
 
 @st.fragment(run_every=1)
 def button_form():
-    col1, col2, col3, col4= st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
     with col2:
@@ -113,6 +113,12 @@ def button_form():
         counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
     with col4:
         counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
+    with col5:
+        if st.session_state.cmd_history[5] == "0":
+            toggle = "1"
+        else:
+            toggle = "0"
+        counterclockwise = serial_write_button("TOGGLE VALVE", "valve", toggle, 5, button_icon="🔄")
 
 
     col1, col2, col3, col4= st.columns(4)
@@ -291,7 +297,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0"]  # Initialize with Five strings
+    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0", "0"]  # Initialize with Five strings
 
 
 # start background thread once

@@ -106,7 +106,19 @@ void Perfusion::stop_motor() {
     motor_direction = STOP;
 }
 
+void Perfusion::toggle_valve() {
+    if (valve_state == CLOSED){
+        valve_state = OPEN;
+    }
+    else {
+        valve_state = CLOSED;
+    }
+    digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
+
+}
+
 void Perfusion::open_valve() {
+
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
     digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
 
@@ -154,8 +166,9 @@ void Perfusion::continue_perfusion() {
 void Perfusion::end_perfusion() {
     perfusion_state = IDLE;
     current_command = "End perfusion";
-    valve_state = CLOSED;
-    digitalWrite(valvePin, LOW);
+    open_valve();
+    //valve_state = CLOSED;
+    //digitalWrite(valvePin, LOW);
     stop_motor();
 }
 

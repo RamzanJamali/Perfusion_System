@@ -34,8 +34,8 @@ Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN,
 // commands for arduino to operate. 
 String inputString = "";
 const char delimiter = ',';
-const int maxCommands = 5;
-String Commands[maxCommands] = {"IDLE", "500", "1.7", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
+const int maxCommands = 6;
+String Commands[maxCommands] = {"IDLE", "500", "1.7", "0", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
 
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
@@ -92,12 +92,9 @@ void loop() {
 	if (Serial.available()) {
 		inputString = Serial.readStringUntil('\n'); // Read until newline
 		inputString.trim();
-		Serial.println(inputString);
-		/*if (inputString == Commands[0]+","+Commands[1]){
-      Status();
-    }
-    else if */
-		if (inputString != Commands[0]+","+Commands[1]+","+Commands[2]) {
+		//Serial.println(inputString);
+		
+		if (inputString != Commands[0]+","+Commands[1]+","+Commands[2]+","+Commands[3]+","+Commands[4]+","+Commands[5]) {
 			CommandParser(inputString, Commands);
 			//Status();
 			//Serial.println("<"+Commands[0]+","+Commands[1]+">");
@@ -105,8 +102,13 @@ void loop() {
 		else{
 			//Status();
 		}
+		
 	}
 
+	for (int x = 0; x<7; x++){
+			//Serial.print(Commands[x]);
+			}
+	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
 		perfusion.start_perfusion();
@@ -143,6 +145,14 @@ void loop() {
 		raw_high = Commands[4].toFloat();
 	}
 	
+	if (perfusion.get_state() == 0) {
+		if ((Commands[5].toInt() == 1) &&  perfusion.get_valve_state() == 0) {
+			perfusion.toggle_valve();
+
+		} else if ((Commands[5].toInt() == 0) && perfusion.get_valve_state() == 1){
+			perfusion.toggle_valve();
+		} else {}
+	}
 
   raw_pressure = analogRead(PRESSURE_PIN);
 	if (raw_low == 0 || raw_high == 0) {
