@@ -29,7 +29,7 @@ static int raw_high = 0;              // high raw sensor reading
 
 // Create perfusion system
 Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
-500, desired_flow_rate, 200, 64); // Target pressure 500, initial speed 1
+500, desired_flow_rate, 200, 64); // Target pressure 500, initial speed 1, motor steps per revolution, microsteps
 
 // commands for arduino to operate. 
 String inputString = "";

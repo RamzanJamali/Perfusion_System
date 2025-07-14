@@ -13,7 +13,10 @@ constexpr uint8_t BUTTON_PIN =  3;      // Photo interrupter or pushbutton pin
 constexpr uint8_t STEP_PIN   =  8;
 constexpr uint8_t DIR_PIN    =  9;
 constexpr uint8_t ENABLE_PIN = 7;
-constexpr uint8_t VALVE_PIN  =  5;
+constexpr uint8_t VALVE_PIN  =  6;
+
+constexpr uint8_t TX_PIN  =  5;
+constexpr uint8_t RX_PIN  =  4;
 
 // ——— AS5048A Encoder ———
   /*For SPI, you'll connect the encoder's MISO, MOSI, SCK, and CS pins to the corresponding SPI pins 
