@@ -16,13 +16,13 @@ const uint8_t CS_PIN = 10;
 
 SoftwareSerial soft_serial(RX_PIN, TX_PIN);
 
-const int32_t RUN_VELOCITY = 164;
+const int32_t RUN_VELOCITY = 164.43;
 const int32_t STOP_VELOCITY = 0;
 const int RUN_DURATION = 2000;
 const int STOP_DURATION = 1000;
 // current values may need to be reduced to prevent overheating depending on
 // specific motor and power supply voltage
-const uint8_t RUN_CURRENT_PERCENT = 100;
+const uint8_t RUN_CURRENT_PERCENT = 60;
 
 
 // Instantiate TMC2209
@@ -76,7 +76,7 @@ void loop()
   	/// place this in your main loop, and it will update every sample time you defined
   	uint32_t current_time = millis();
     
-	if (current_time - prev_time > 10000) {
+	if (current_time - prev_time > 5000) {
 		prev_time = current_time;
 		ABS.update_info();
     rpm = ABS.get_speed();
