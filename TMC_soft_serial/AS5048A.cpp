@@ -9,12 +9,12 @@ static const int16_t COUNTS_PER_REV = 16384;
 static const int16_t HALF_COUNTS   = COUNTS_PER_REV / 2;
 
 // Globals for tracking
-uint16_t old_result_AS5048A    = 0;
-uint32_t last_sample_time_us   = 0;
-int16_t  diff_AS5048A          = 0;
+static uint16_t old_result_AS5048A    = 0;
+static uint32_t last_sample_time_us   = 0;
+static int16_t  diff_AS5048A          = 0;
 bool     DIR_AS5048A           = false;
 uint16_t res_info_AS5048A      = 0;
-float    last_rpm              = 0.0f;
+static float    last_rpm              = 0.0f;
 
 AS5048A::AS5048A(int chipSelectPin) {
   value = chipSelectPin;

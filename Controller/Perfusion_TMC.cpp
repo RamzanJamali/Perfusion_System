@@ -1,19 +1,16 @@
 #include "Perfusion.h"
 
-Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
-                     float target_pressure, float flow_rate,
-                     int motorStepsPerRev, int microsteps)
-    : stepper(motorStepsPerRev * microsteps, STEPDIR),
-      stepPin(stepPin), //
-      dirPin(dirPin), //
-      enablePin(enablePin), //
-      valvePin(valvePin),
-      stepsPerRev(motorStepsPerRev * microsteps),
+Perfusion::Perfusion(byte RX_PIN, byte TX_PIN, byte VALVE_PIN,
+                     float target_pressure, float flow_rate)
+    : stepper(flow_rate),
+      VALVE_PIN(VALVE_PIN),
+      //stepsPerRev(motorStepsPerRev * microsteps),
       perfusion_state(IDLE),
       current_command(nullptr),
       target_pressure(target_pressure),
       syringe_end_position(0),
-      motor_speed(motor_speed),
+      motor_speed(motor_speed), // RUN_VELOCITY
+      RUN_CURRENT_PERCENT(60);
       current_motor_speed(0),
       motor_direction(STOP),
       valve_state(CLOSED),
@@ -26,17 +23,14 @@ Perfusion::Perfusion(byte stepPin, byte dirPin, byte enablePin, byte valvePin,
       gyro_z(0.0) {
     
     // Initialize hardware
-    stepper.attach(stepPin, dirPin);
-    pinMode(enablePin, OUTPUT);
-    digitalWrite(enablePin, HIGH); // Disable driver initially
+    stepper.setup(soft_serial);
+    stepper.setRunCurrent(RUN_CURRENT_PERCENT);
+    stepper.enableCoolStep();
+    stepper.setMicrostepsPerStep(256); // Set microstepping
+    stepper.enable();
     
-    pinMode(valvePin, OUTPUT);
-    digitalWrite(valvePin, LOW); // Close valve initially
-    
-    // Configure stepper
-    stepper.setSpeedSteps(flow_rate);
-    stepper.setRampLen(1); // Ramp length in steps
-    stepper.setZero(); // Set current position as zero
+    pinMode(VALVE_PIN, OUTPUT);
+    digitalWrite(VALVE_PIN, LOW); // Close valve initially
 }
 
 void Perfusion::update_data(const String& data) {
@@ -82,27 +76,20 @@ void Perfusion::update_data(const String& data) {
     }
 }
 
-void Perfusion::move_motor(float flow, MotorDirection direction) {
-    //motor_speed = speed;
-    motor_direction = direction;
+void Perfusion::move_motor(float flow) {
+
     
     // Enable motor driver
-    digitalWrite(enablePin, LOW);
+    stepper_driver.enable();
     
     // Configure stepper
-    //stepper.setSpeed(motor_speed);
-    stepper.setSpeedSteps(flow);
+    stepper.setRunCurrent(60);
     
-    if (direction == CW) {
-        stepper.rotate(1); // Rotate clockwise
-    } else if (direction == CCW) {
-        stepper.rotate(-1); // Rotate counter-clockwise
-    }
+    stepper_driver.moveAtVelocity(flow);
 }
 
 void Perfusion::stop_motor() {
-    stepper.stop();
-    digitalWrite(enablePin, HIGH); // Disable driver
+    stepper.disable();
     motor_direction = STOP;
 }
 
@@ -113,14 +100,14 @@ void Perfusion::toggle_valve() {
     else {
         valve_state = CLOSED;
     }
-    digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
+    digitalWrite(VALVE_PIN, valve_state == OPEN ? HIGH : LOW);
 
 }
 
 void Perfusion::open_valve() {
 
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
-    digitalWrite(valvePin, valve_state == OPEN ? HIGH : LOW);
+    digitalWrite(VALVE_PIN, valve_state == OPEN ? HIGH : LOW);
 
 }
 
@@ -129,7 +116,7 @@ void Perfusion::start_perfusion() {
     current_command = "Start perfusion";
     
     if (syringe_end_position == LOW) {
-        move_motor(flow_rate, CCW);
+        move_motor(flow_rate);
         open_valve();
     } else {
         end_perfusion();
@@ -152,7 +139,7 @@ void Perfusion::pause_perfusion() {
     perfusion_state = PAUSED;
     current_command = "Pause perfusion";
     valve_state = CLOSED;
-    digitalWrite(valvePin, LOW);
+    digitalWrite(VALVE_PIN, LOW);
     stop_motor();
 }
 
@@ -160,7 +147,7 @@ void Perfusion::continue_perfusion() {
     perfusion_state = PERFUSING;
     current_command = "Continue perfusion";
 
-    move_motor(flow_rate, CCW);
+    move_motor(flow_rate);
 }
 
 void Perfusion::end_perfusion() {
@@ -168,7 +155,7 @@ void Perfusion::end_perfusion() {
     current_command = "End perfusion";
     open_valve();
     //valve_state = CLOSED;
-    //digitalWrite(valvePin, LOW);
+    //digitalWrite(VALVE_PIN, LOW);
     stop_motor();
 }
 
@@ -181,8 +168,8 @@ void Perfusion::set_current_pressure(float new_pressure){
 }
 
 void Perfusion::set_speed(float desired_speed) {
-    motor_speed = desired_speed;
-    stepper.setSpeed(motor_speed);
+    motor_speed = (desired_speed * 51200)/(60*0.715);
+    stepper.moveAtVelocity(motor_speed);
 }
 
 void Perfusion::set_current_motor_speed(float rpm) {
