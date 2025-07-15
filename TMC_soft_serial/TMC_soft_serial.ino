@@ -16,7 +16,7 @@ const uint8_t CS_PIN = 10;
 
 SoftwareSerial soft_serial(RX_PIN, TX_PIN);
 
-const int32_t RUN_VELOCITY = 164.43;
+const int32_t RUN_VELOCITY = 1193.47;
 const int32_t STOP_VELOCITY = 0;
 const int RUN_DURATION = 2000;
 const int STOP_DURATION = 1000;
