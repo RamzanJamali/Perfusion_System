@@ -1,136 +1,83 @@
-
-
 #include "AS5048A.h"
+#include <SPI.h>
 
+#define AS5048A_RESOLUTION       0.02197399f
+static const float AS5048A_RES_RAD = AS5048A_RESOLUTION * 0.01745329f;
 
+// 14-bit encoder counts
+static const int16_t COUNTS_PER_REV = 16384;
+static const int16_t HALF_COUNTS   = COUNTS_PER_REV / 2;
 
+// Globals for tracking
+static uint16_t old_result_AS5048A    = 0;
+static uint32_t last_sample_time_us   = 0;
+static int16_t  diff_AS5048A          = 0;
+bool     DIR_AS5048A           = false;
+uint16_t res_info_AS5048A      = 0;
+static float    last_rpm              = 0.0f;
 
-#define AS5048A_resolution  0.02197399
-float AS5048A_resolution_in_rad = AS5048A_resolution * 0.01745329 ; 
-
-/// globals 
-  uint16_t old_result_AS5048A ;
-  uint32_t previousMillis_AS5048A ;  
-  int16_t diff_AS5048A;
-  int DIR_AS5048A;
-  int16_t res_info_AS5048A;
-  
-  
-  
-  
-  
-AS5048A::AS5048A(int chipSelectPin ){
+AS5048A::AS5048A(int chipSelectPin) {
   value = chipSelectPin;
   pinMode(value, OUTPUT);
-  
 }
 
-
-/// sets up our SPI communication parameters
-void AS5048A::SPI_setup(){  
-  
-SPI.begin();
-SPI.setBitOrder(MSBFIRST);
-SPI.setDataMode (SPI_MODE1) ;
-if (F_CPU == 16000000UL){
-    SPI.setClockDivider(SPI_CLOCK_DIV2);  
-}else if(F_CPU == 72000000UL){
-    SPI.setClockDivider(SPI_CLOCK_DIV8);  
-}
- 
+void AS5048A::SPI_setup() {
+  SPI.begin();
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setDataMode(SPI_MODE1);
+#if F_CPU == 16000000UL
+  SPI.setClockDivider(SPI_CLOCK_DIV2);
+#elif F_CPU == 72000000UL
+  SPI.setClockDivider(SPI_CLOCK_DIV8);
+#endif
 }
 
-
-
-/// ends SPI communication
-void AS5048A::end_SPI(){
-	SPI.end();
+void AS5048A::end_SPI() {
+  SPI.end();
 }
 
-
-
-/// tells us position .
-/// does not depend on any other function .
-/// call this if you dont care about direction and speed or you want to calculate it yourself.
-uint16_t AS5048A::get_raw(){
-  
-uint16_t result ;
-uint16_t result1 ;
-uint16_t result2 ;
-digitalWrite(value, LOW);
-result1 = SPI.transfer(0b00000000);
-result1 &= 0b00111111;  
-result1 = result1 << 8;
-result2 = SPI.transfer(0b00000000); 
-result = result1 | result2;
-digitalWrite(value, HIGH);
-return result; 
-
+uint16_t AS5048A::get_raw() {
+  uint16_t result1, result2;
+  digitalWrite(value, LOW);
+  result1 = SPI.transfer(0x00) & 0x3F;
+  result1 <<= 8;
+  result2 = SPI.transfer(0x00);
+  digitalWrite(value, HIGH);
+  return (result1 | result2);
 }
 
+// Call this as frequently as possible from loop()
+void AS5048A::update_info() {
+  uint32_t now_us = micros();
+  uint16_t new_position = get_raw();
 
+  int16_t delta = (int16_t)new_position - (int16_t)old_result_AS5048A;
 
-/// samples position every sample_all time
-/// using that we can get position, direction and speed
-void AS5048A::get_info(int sample){
- 
- 
-  sample_all = sample ;
-  uint32_t currentMillis = millis();
- 
-  
-// We take sample every sample_all . Time is in ms 
-if(currentMillis-previousMillis_AS5048A >= sample_all ){
-  previousMillis_AS5048A=currentMillis;
-  res_info_AS5048A = AS5048A::get_raw();
-  diff_AS5048A=res_info_AS5048A-old_result_AS5048A;
+  if (delta > HALF_COUNTS)   delta -= COUNTS_PER_REV;
+  if (delta < -HALF_COUNTS)  delta += COUNTS_PER_REV;
 
- 
- if (diff_AS5048A==0){
-  //do nothing
-}else if (abs(diff_AS5048A) < 8192 ){  // if angle changes less then 180 deg
- // if diff_AS5048A is positive we are rotating clockwise
- // if diff_AS5048A is negative we are rotating counterclockwise
+  uint32_t elapsed_us = now_us - last_sample_time_us;
+  if (elapsed_us > 0) {
+    float elapsed_s = elapsed_us / 1e6f;
+    float revs = (float)delta / COUNTS_PER_REV;
+    last_rpm = (revs / elapsed_s) * 60.0f;
+  }
 
-     if (diff_AS5048A > 0)
-        DIR_AS5048A = 1;     // rotating clockwise
-     else
-        DIR_AS5048A = 0;    // rotating counterclockwise
-}
-old_result_AS5048A=res_info_AS5048A; 
-
-}
+  DIR_AS5048A = (delta > 0);
+  diff_AS5048A = delta;
+  old_result_AS5048A = new_position;
+  res_info_AS5048A = new_position;
+  last_sample_time_us = now_us;
 }
 
-
-
-/// tells us direction 1 clockwise, 0 counterclockwise
-/// call this only if you have  "get_info" in your main loop
-bool AS5048A::get_DIR(){
-bool val;
-val = DIR_AS5048A;
-return val;
+bool AS5048A::get_DIR() {
+  return DIR_AS5048A;
 }
 
-
-
-/// tells us position , same as "get_raw" but it is always updated by "get_info"
-/// if you want to know position in that exact moment in code call "get_raw"
-/// call this only if you have  "get_info" in your main loop
-uint16_t AS5048A::get_pos(){
-	uint16_t pos;
-	pos = res_info_AS5048A;
-	return pos;
+uint16_t AS5048A::get_pos() {
+  return res_info_AS5048A;
 }
 
-
-
-/// calculates speed in rad/s 
-/// call this only if you have "get_info" in your main loop
-float AS5048A::get_speed(){
-	float speed;
-	speed = ((abs(diff_AS5048A)*AS5048A_resolution_in_rad)/(sample_all / 1000.0));	// in rad/s ??
-    //Serial.println(AS5048A_resolution_in_rad,8);
-	return speed;
-
+float AS5048A::get_speed() {
+  return fabs(last_rpm);
 }

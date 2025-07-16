@@ -35,7 +35,7 @@ double rpm;
 AS5048A ABS(CS_PIN);
 
 static uint32_t prev_time = 0;
-
+static uint32_t start_time = 0;
 static uint16_t prev_raw = 0;
 static int32_t  half_range = 16384 / 2;
 static int64_t  abs_counts = 0;    // signed total counts since start
@@ -88,34 +88,41 @@ void loop()
 		ABS.update_info();
 
     rpm = ABS.get_speed();
-    Serial.println(rpm, 4);
+    //Serial.println(rpm, 4);
 
 
     uint16_t current_raw = ABS.get_pos();       // 0…16383
-  int32_t  delta       = int32_t(current_raw) - int32_t(prev_raw);
+    int32_t  delta       = int32_t(current_raw) - int32_t(prev_raw);
 
-  // wrap detection
-  if      (delta >  half_range) delta -= 16384;
-  else if (delta < -half_range) delta += 16384;
+    // wrap detection
+    if      (delta >  half_range) delta -= 16384;
+    else if (delta < -half_range) delta += 16384;
 
-  abs_counts += delta;    // accumulate true signed counts
-  prev_raw   = current_raw;
+    abs_counts += delta;    // accumulate true signed counts
+    prev_raw   = current_raw;
 
-  // compute total rotations and angle
-  float rotations = float(abs_counts) / 16384.0;  
-  // fractional part for angle:
-  int32_t frac_counts = abs_counts % 16384;
-  if (frac_counts < 0) frac_counts += 16384;   // keep 0…16383
-  float angle_deg = (frac_counts / 16383.0) * 360.0;
+    // compute total rotations and angle
+    float rotations = float(abs_counts) / 16384.0;  
+    // fractional part for angle:
+    int32_t frac_counts = abs_counts % 16384;
+    //if (frac_counts < 0) frac_counts += 16384;   // keep 0…16383
+    //float angle_deg = (frac_counts / 16383.0) * 360.0;
 
-  double rpm = ABS.get_speed();
+    double rpm = ABS.get_speed();
 
-  Serial.print("RPM: ");
-  Serial.print(rpm, 2);
-  Serial.print(" | Turns: ");
-  Serial.print(rotations, 4);
-  Serial.print(" | Angle: ");
-  Serial.println(angle_deg, 2);
+    Serial.print("RPM: ");
+    Serial.print(rpm, 4);
+    Serial.print(" | Turns: ");
+    Serial.print(abs(rotations), 4);
+    double mL = rotations/20 * 0.2520;
+    Serial.print(" | mL: ");
+    Serial.print(abs(mL), 5);
+    Serial.print("  | Time elapsed: ");
+    double time_elapsed = (millis() - start_time)/(1000); // Time in minutes
+    Serial.print(time_elapsed/60);
+    Serial.println(".");
+    //Serial.print(" | Angle: ");
+    //Serial.println(angle_deg, 2);
     
     
 	}

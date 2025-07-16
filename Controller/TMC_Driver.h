@@ -1,20 +1,23 @@
-#ifndef PERFUSION_H
-#define PERFUSION_H
+// TMC2209Driver.h
+#ifndef TMC_DRIVER_H
+#define TMC_DRIVER_H
 
-#include <Arduino.h>
 #include <TMC2209.h>
+#include <SoftwareSerial.h>
 
-class Perfusion {
+class TMC2209Driver {
 public:
+    TMC2209Driver(uint8_t RX_PIN, uint8_t TX_PIN, uint8_t runCurrentPercent, uint8_t VALVE_PIN, float target_pressure = 1.0, float flow_rate = 0);
+    void begin();
+    void run();
+    void stop();
+
+
     enum PerfusionState { IDLE, PERFUSING, PAUSED };
     enum MotorDirection { STOP, CW, CCW };
     enum ValveState { CLOSED, OPEN };
 
-    // Constructor with hardware pin configuration
-    Perfusion(byte RX_PIN, byte TX_PIN, byte VALVE_PIN,
-              float target_pressure = 1.0, float flow_rate=0);
-    
-    // Sensor data update
+        // Sensor data update
     void update_data(const String& data);
     
     // Motor control commands
@@ -52,16 +55,17 @@ public:
     void toggle_valve();
 
 private:
+    SoftwareSerial softSerial;
+    TMC2209 stepperDriver;
+    int32_t runVelocity;
+    uint8_t runCurrentPercent;
+
+    uint8_t VALVE_PIN;
+    
     void move_motor(float speed);
     
     void stop_motor();
-    
-    // Hardware components
-    TMC2209 stepper;
-    byte RX_PIN, byte TX_PIN, byte VALVE_PIN, valvePin;
-    const long stepsPerRev;
-    const uint8_t RUN_CURRENT_PERCENT;
-    
+  
     // Perfusion state
     PerfusionState perfusion_state;
     const char* current_command;
@@ -73,12 +77,12 @@ private:
     // Sensor values
     float motor_speed;
     float current_motor_speed;
+    MotorDirection motor_direction;
     ValveState valve_state;
     float current_pressure;
     float flow_rate;
-    //int syringe_current_position;
+    int syringe_current_position;
     float tilt;
     float gyro_x, gyro_y, gyro_z;
 };
-
-#endif
+#endif // TMC2209_DRIVER_H

@@ -1,6 +1,7 @@
 #include "config.h"
-#include <MobaTools.h>
-#include "Perfusion.h"
+//#include <MobaTools.h>
+//#include <TMC2209.h>
+#include "TMC_Driver.h"
 #include "AS5048A.h"
 #include "Pressure.h"
 //#include "ReadTemperatureHumidity.h"
@@ -16,9 +17,10 @@ DHT dht(DHT_PIN, DHT_TYPE);
 int at_end_position; //define a numeric variable
 
 
-float desired_flow_rate = 1.7;
-double rpm;
-#define sample 200
+float desired_flow_rate = 2.5;
+float target_pressure = 500;
+int runCurrentPercent = 100;
+static double rpm = 0;
 // define our CS PIN 
 AS5048A ABS(CS_PIN);
 
@@ -28,8 +30,7 @@ static int raw_low = 0;               // low raw sensor reading
 static int raw_high = 0;              // high raw sensor reading
 
 // Create perfusion system
-Perfusion perfusion(STEP_PIN, DIR_PIN, ENABLE_PIN, VALVE_PIN, 
-500, desired_flow_rate, 200, 64); // Target pressure 500, initial speed 1, motor steps per revolution, microsteps
+TMC2209Driver perfusion(RX_PIN, TX_PIN, runCurrentPercent, VALVE_PIN, target_pressure, desired_flow_rate); // Target pressure 500, initial speed 1, motor steps per revolution, microsteps
 
 // commands for arduino to operate. 
 String inputString = "";
@@ -41,11 +42,7 @@ String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
 
 
-const uint8_t  MAX_SAMPLES = 20;
-float         samples[MAX_SAMPLES];
-uint8_t       sampleCount = 0;
-
-uint32_t prev_time = 0;
+static uint32_t prev_time = 0;
 
 void setup() {
 
@@ -61,6 +58,7 @@ void setup() {
   digitalWrite(CS_PIN, HIGH);
 
 	ABS.SPI_setup();
+	ABS.update_info();
 
   dht.begin();
 
@@ -85,10 +83,18 @@ void loop() {
   //perfusion.open_valve();
 
 	/// place this in your main loop, and it will update every sample time you defined
-	ABS.get_info(sample);
-	rpm = abs(averageDelta(ABS.get_speed()));
-	perfusion.set_current_motor_speed(rpm);
+/*	  uint32_t check_time = millis();
+   
+	if (check_time - prev_time > 5000) {
+		prev_time = check_time;
+		ABS.update_info();
+		rpm = ABS.get_speed();
+		perfusion.set_current_motor_speed(rpm);
+	}*/
+	ABS.update_info();
+	rpm = ABS.get_speed();
 
+	
 	if (Serial.available()) {
 		inputString = Serial.readStringUntil('\n'); // Read until newline
 		inputString.trim();
@@ -111,13 +117,23 @@ void loop() {
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
-		perfusion.start_perfusion();
+		if (perfusion.get_state() == 1){
+				perfusion.open_valve();
+		}
+		else{
+			perfusion.start_perfusion();
+		}
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
 		perfusion.pause_perfusion();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
-		perfusion.start_perfusion();
+		if (perfusion.get_state() == 1){
+				perfusion.open_valve();
+		}
+		else{
+			perfusion.start_perfusion();
+		}
 
 	} else if (Commands[0] == "END_PERFUSION") {
 		perfusion.end_perfusion();
@@ -194,7 +210,7 @@ void CommandParser(String inputString, String *Commands) {
 
 void Status(){
 	// perfusion.get_motor_speed() will be replaced by flow rate.
-	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,6) + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,4) + ", " + data[1] + ", " + data[2] +", "+ data[3] +", "+ data[4] +">");
 }
 
 
@@ -219,7 +235,7 @@ String ReadTemperatureHumidity(){
 
 }
 
-
+/*
 
 float averageDelta(float newSample) {
   // 1) Insert newSample into our rolling buffer
@@ -248,3 +264,4 @@ float averageDelta(float newSample) {
   // 4) Return average difference
   return sumDeltas / delCount;
 }
+*/
