@@ -43,6 +43,7 @@ String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyr
 
 
 static uint32_t prev_time = 0;
+static uint32_t abs_prev_time = 0;
 
 void setup() {
 
@@ -91,8 +92,7 @@ void loop() {
 		rpm = ABS.get_speed();
 		perfusion.set_current_motor_speed(rpm);
 	}*/
-	ABS.update_info();
-	rpm = ABS.get_speed();
+	
 
 	
 	if (Serial.available()) {
@@ -183,9 +183,19 @@ void loop() {
 	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
 	
 
+  uint32_t abs_current_time = millis();
+  if (abs_current_time - abs_prev_time >= 5000) {
+    ABS.update_info();
+    rpm = ABS.get_speed();
+    
+    abs_prev_time = abs_current_time;
+  }
+
+
+
 	uint32_t current_time = millis();
 	if (current_time - prev_time > 999) {
-		prev_time = current_time;
+
 		Status();
 	}
 	

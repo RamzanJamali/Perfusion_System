@@ -16,13 +16,14 @@ const uint8_t CS_PIN = 10;
 
 SoftwareSerial soft_serial(RX_PIN, TX_PIN);
 
-const int32_t RUN_VELOCITY = 164.434;
+const int32_t RUN_VELOCITY = 164.434; // 164.434
+
 const int32_t STOP_VELOCITY = 0;
 const int RUN_DURATION = 2000;
 const int STOP_DURATION = 1000;
 // current values may need to be reduced to prevent overheating depending on
 // specific motor and power supply voltage
-const uint8_t RUN_CURRENT_PERCENT = 30;
+const uint8_t RUN_CURRENT_PERCENT = 100;
 
 
 // Instantiate TMC2209
@@ -59,6 +60,8 @@ void setup()
   ABS.update_info();
   // 1) Read the very first raw position and treat it as "zero"
   prev_raw = ABS.get_pos();  
+  stepper_driver.enable();
+  Serial.println("Start");
 
 }
 
@@ -75,7 +78,7 @@ void loop()
     stepper_driver.disableInverseMotorDirection();
   }
   invert_direction = not invert_direction;
-*/stepper_driver.enable();
+*/
   stepper_driver.moveAtVelocity(RUN_VELOCITY);
 
   //delay(RUN_DURATION);
@@ -83,11 +86,11 @@ void loop()
   	/// place this in your main loop, and it will update every sample time you defined
   uint32_t current_time = millis();
     
-	if (current_time - prev_time > 5000) {
+	if (current_time - prev_time > 20000) {
 		prev_time = current_time;
 		ABS.update_info();
 
-    rpm = ABS.get_speed();
+    //rpm = ABS.get_speed();
     //Serial.println(rpm, 4);
 
 
@@ -108,7 +111,7 @@ void loop()
     //if (frac_counts < 0) frac_counts += 16384;   // keep 0…16383
     //float angle_deg = (frac_counts / 16383.0) * 360.0;
 
-    double rpm = ABS.get_speed();
+    rpm = ABS.get_speed();
 
     Serial.print("RPM: ");
     Serial.print(rpm, 4);
@@ -118,7 +121,7 @@ void loop()
     Serial.print(" | mL: ");
     Serial.print(abs(mL), 5);
     Serial.print("  | Time elapsed: ");
-    double time_elapsed = (millis() - start_time)/(1000); // Time in minutes
+    double time_elapsed = (current_time - start_time)/(1000); // Time in minutes
     Serial.print(time_elapsed/60);
     Serial.println(".");
     //Serial.print(" | Angle: ");

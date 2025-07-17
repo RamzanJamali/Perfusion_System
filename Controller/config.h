@@ -10,9 +10,9 @@ constexpr uint8_t DHT_PIN  = 2;         // Digital pin connected to the DHT22 da
 constexpr uint8_t BUTTON_PIN =  3;      // Photo interrupter or pushbutton pin
 
 // ——— Stepper / Valve Hardware ———
-constexpr uint8_t STEP_PIN   =  8;
-constexpr uint8_t DIR_PIN    =  9;
-constexpr uint8_t ENABLE_PIN = 7;
+//constexpr uint8_t STEP_PIN   =  8;
+//constexpr uint8_t DIR_PIN    =  9;
+//                         constexpr uint8_t ENABLE_PIN = 7;
 constexpr uint8_t VALVE_PIN  =  6;
 
 constexpr uint8_t TX_PIN  =  5;
