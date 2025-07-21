@@ -192,15 +192,16 @@ void loop() {
   }
 
 
-
+/*
 	uint32_t current_time = millis();
 	if (current_time - prev_time > 999) {
 
 		Status();
 	}
-	
+	*/
 	//perfusion.update_data(data);
-	
+	delay(999);
+	Status();
 }
 
 void CommandParser(String inputString, String *Commands) {
