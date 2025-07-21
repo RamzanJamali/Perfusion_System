@@ -86,7 +86,7 @@ def send_all_commands():
     # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
     ser.write(packet.encode())
-    st.success(f"Sent: {packet.strip()}")
+    #st.success(f"Sent: {packet.strip()}")
     
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
@@ -352,8 +352,8 @@ placeholder = st.empty()
 
 #start = time.time()
 try:
-    buffer = get_buffer()
-    show_latest_line(buffer)
+    #buffer = get_buffer()
+    #show_latest_line(buffer)
 
     # Optional: show full log
     with st.sidebar:
