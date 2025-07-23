@@ -36,7 +36,7 @@ TMC2209Driver perfusion(RX_PIN, TX_PIN, runCurrentPercent, VALVE_PIN, target_pre
 String inputString = "";
 const char delimiter = ',';
 const int maxCommands = 6;
-String Commands[maxCommands] = {"IDLE", "500", "1.7", "0", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
+String Commands[maxCommands] = {"IDLE", "500", "2.5", "0", "0", "0"}; // {perfusion_state, pressure, flow_rate, raw_low, raw_high}
 
 String result;
 String data[] = {"1", "90", "45", "45", "45", "2", "CW"}; // Pressure, tilt, gyro x, gyro y, gyro z, Motor Speed, Motor Direction
@@ -68,8 +68,7 @@ void setup() {
 }
 
 void loop() {
-	at_end_position = digitalRead(BUTTON_PIN);
-	perfusion.set_end_position(at_end_position);
+	
 
 	result = ReadTemperatureHumidity();
 
@@ -117,26 +116,17 @@ void loop() {
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
-		if (perfusion.get_state() == 1){
-				perfusion.open_valve();
-		}
-		else{
 			perfusion.start_perfusion();
-		}
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
-		perfusion.pause_perfusion();
+		  perfusion.pause_perfusion();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
-		if (perfusion.get_state() == 1){
-				perfusion.open_valve();
-		}
-		else{
 			perfusion.start_perfusion();
-		}
+		
 
 	} else if (Commands[0] == "END_PERFUSION") {
-		perfusion.end_perfusion();
+		  perfusion.end_perfusion();
 	} else {
 		}
 
@@ -162,11 +152,16 @@ void loop() {
 	}
 	
 	if (perfusion.get_state() == 0) {
-		if ((Commands[5].toInt() == 1) &&  perfusion.get_valve_state() == 0) {
-			perfusion.toggle_valve();
+		if (Commands[5].toInt() == 1) {
+    if (perfusion.get_valve_state() == 0){
+      perfusion.opened_valve();
+      
+      } else {
+			  
+			}
 
-		} else if ((Commands[5].toInt() == 0) && perfusion.get_valve_state() == 1){
-			perfusion.toggle_valve();
+		} else if (Commands[5].toInt() == 0){
+			perfusion.closed_valve();
 		} else {}
 	}
 
@@ -177,11 +172,8 @@ void loop() {
 	else {
 		perfusion.set_current_pressure(Pressure(LOW_PRESSURE, HIGH_PRESSURE, raw_low, raw_high, raw_pressure));
 	}
- 
-  //perfusion.open_valve();
   
-	//Serial.println("<"+Commands[0]+", " +Commands[1]+", " + Commands[2]+", " +perfusion.get_steps_per_second()+">"); // In future get_steps_per_second() should be replaced by flow_rate calculated using motor_speed provided by sensor.
-	
+
 
   uint32_t abs_current_time = millis();
   if (abs_current_time - abs_prev_time >= 5000) {
@@ -202,6 +194,19 @@ void loop() {
 	//perfusion.update_data(data);
 	delay(999);
 	Status();
+ float a = perfusion.get_current_pressure();
+ float b = perfusion.get_target_pressure();
+ b = b * 1.5;
+
+
+ if (a > b) {
+    at_end_position = HIGH;
+    perfusion.set_end_position(at_end_position);
+ } else {
+  at_end_position = digitalRead(BUTTON_PIN);
+  perfusion.set_end_position(at_end_position);
+  }
+ 
 }
 
 void CommandParser(String inputString, String *Commands) {

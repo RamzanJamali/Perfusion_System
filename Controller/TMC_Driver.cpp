@@ -14,7 +14,7 @@ TMC2209Driver::TMC2209Driver(uint8_t RX_PIN, uint8_t TX_PIN, uint8_t runCurrentP
       current_pressure(2.0)
     {
         pinMode(VALVE_PIN, OUTPUT);
-        digitalWrite(VALVE_PIN, LOW); // Close valve initially
+        //digitalWrite(VALVE_PIN, LOW); // Close valve initially
         begin();
     }
 
@@ -32,7 +32,7 @@ void TMC2209Driver::run() {
 }
 
 void TMC2209Driver::stop() {
-    //stepperDriver.disable();
+    stepperDriver.disable();
     stepperDriver.moveAtVelocity(0);
 }
 
@@ -80,16 +80,16 @@ void TMC2209Driver::update_data(const String& data) {
 }
 
 
-void TMC2209Driver::toggle_valve() {
-    if (valve_state == CLOSED){
-        valve_state = OPEN;
-    }
-    else {
-        valve_state = CLOSED;
-    }
-    digitalWrite(VALVE_PIN, valve_state == OPEN ? HIGH : LOW);
-
+void TMC2209Driver::opened_valve() {
+    valve_state = OPEN;
+    digitalWrite(VALVE_PIN, HIGH);
 }
+
+void TMC2209Driver::closed_valve() {
+    valve_state = CLOSED;
+    digitalWrite(VALVE_PIN, LOW);
+}
+
 
 void TMC2209Driver::open_valve() {
 
@@ -126,7 +126,6 @@ void TMC2209Driver::pause_perfusion() {
     perfusion_state = PAUSED;
     current_command = "Pause perfusion";
     valve_state = CLOSED;
-    digitalWrite(VALVE_PIN, LOW);
     stop();
 }
 
@@ -139,9 +138,6 @@ void TMC2209Driver::continue_perfusion() {
 void TMC2209Driver::end_perfusion() {
     perfusion_state = IDLE;
     current_command = "End perfusion";
-    open_valve();
-    //valve_state = CLOSED;
-    //digitalWrite(VALVE_PIN, LOW);
     stop();
 }
 
@@ -175,6 +171,7 @@ void TMC2209Driver::set_flow_rate(float desired_flow_rate) {
 
 void TMC2209Driver::set_end_position(int position) {
     syringe_end_position = position;
+    end_perfusion();
 }
 
 // Accessor methods

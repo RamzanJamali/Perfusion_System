@@ -52,7 +52,8 @@ public:
     ValveState get_valve_state() const;
     float get_current_motor_speed() const;
     void open_valve();
-    void toggle_valve();
+    void opened_valve();
+    void closed_valve();
 
 private:
     SoftwareSerial softSerial;
