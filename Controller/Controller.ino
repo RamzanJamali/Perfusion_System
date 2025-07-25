@@ -1,6 +1,4 @@
 #include "config.h"
-//#include <MobaTools.h>
-//#include <TMC2209.h>
 #include "TMC_Driver.h"
 #include "AS5048A.h"
 #include "Pressure.h"
@@ -190,10 +188,13 @@ void loop() {
 
 		Status();
 	}
-	*/
+*/
+
 	//perfusion.update_data(data);
 	delay(999);
 	Status();
+
+
  float a = perfusion.get_current_pressure();
  float b = perfusion.get_target_pressure();
  b = b * 1.5;

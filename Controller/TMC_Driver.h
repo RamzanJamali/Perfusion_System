@@ -1,17 +1,11 @@
 // TMC2209Driver.h
-#ifndef TMC_DRIVER_H
-#define TMC_DRIVER_H
+#ifndef PERFUSION_H
+#define PERFUSION_H
 
-#include <TMC2209.h>
-#include <SoftwareSerial.h>
 
-class TMC2209Driver {
+class Perfusion {
 public:
-    TMC2209Driver(uint8_t RX_PIN, uint8_t TX_PIN, uint8_t runCurrentPercent, uint8_t VALVE_PIN, float target_pressure = 1.0, float flow_rate = 0);
-    void begin();
-    void run();
-    void stop();
-
+    Perfusion(uint8_t VALVE_PIN, float target_pressure = 1.0, float flow_rate = 0);
 
     enum PerfusionState { IDLE, PERFUSING, PAUSED };
     enum MotorDirection { STOP, CW, CCW };
@@ -56,8 +50,6 @@ public:
     void closed_valve();
 
 private:
-    SoftwareSerial softSerial;
-    TMC2209 stepperDriver;
     int32_t runVelocity;
     uint8_t runCurrentPercent;
 

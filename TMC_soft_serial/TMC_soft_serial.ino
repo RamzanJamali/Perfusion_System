@@ -1,6 +1,6 @@
-#include <TMC2209.h>
+//#include <TMC2209.h>
 #include "AS5048A.h"
-
+#include "TMC.h"
 // SoftwareSerial can be used on Arduino boards without HardwareSerial ports,
 // such as the Uno, Nano, and Mini.
 //
@@ -13,10 +13,10 @@
 const uint8_t RX_PIN = 4;
 const uint8_t TX_PIN = 5;
 const uint8_t CS_PIN = 10;
-
+/*
 SoftwareSerial soft_serial(RX_PIN, TX_PIN);
 
-const int32_t RUN_VELOCITY = 164.434; // 164.434
+const int32_t RUN_VELOCITY = 20000; // 164.434
 
 const int32_t STOP_VELOCITY = 0;
 const int RUN_DURATION = 2000;
@@ -29,7 +29,9 @@ const uint8_t RUN_CURRENT_PERCENT = 100;
 // Instantiate TMC2209
 TMC2209 stepper_driver;
 bool invert_direction = true;
+*/
 
+TMC_DRIVER drive_stepper(RX_PIN, TX_PIN, 100);
 
 double rpm;
 // define our CS PIN 
@@ -45,13 +47,14 @@ static int64_t  abs_counts = 0;    // signed total counts since start
 void setup()
 {
   Serial.begin(115200);
+  /*
   stepper_driver.setup(soft_serial);
-
   stepper_driver.setRunCurrent(RUN_CURRENT_PERCENT);
   stepper_driver.enableCoolStep();
-  stepper_driver.enable();
+  //stepper_driver.enable();
 
   stepper_driver.setMicrostepsPerStep(256); // Set microstepping
+  */
   	// For AS5048A encoder
   pinMode(CS_PIN, OUTPUT);
   digitalWrite(CS_PIN, HIGH);
@@ -60,7 +63,8 @@ void setup()
   ABS.update_info();
   // 1) Read the very first raw position and treat it as "zero"
   prev_raw = ABS.get_pos();  
-  stepper_driver.enable();
+  //stepper_driver.enable();
+  drive_stepper.begin();
   Serial.println("Start");
 
 }
@@ -79,7 +83,8 @@ void loop()
   }
   invert_direction = not invert_direction;
 */
-  stepper_driver.moveAtVelocity(RUN_VELOCITY);
+  //stepper_driver.moveAtVelocity(RUN_VELOCITY);
+  drive_stepper.run();
 
   //delay(RUN_DURATION);
 

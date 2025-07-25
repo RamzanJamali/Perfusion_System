@@ -300,7 +300,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0", "0"]  # Initialize with Five strings
+    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0", "0"]  # Initialize with Six strings
 
 
 # start background thread once
