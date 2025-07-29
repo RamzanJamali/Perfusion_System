@@ -1,15 +1,16 @@
 // PERFUSION.cpp
 #include "PERFUSION.h"
 
-Perfusion::Perfusion(uint8_t VALVE_PIN, float target_pressure = 1.0)
+Perfusion::Perfusion(uint8_t valve_pin, float target_pressure = 1.0)
     :   perfusion_state(IDLE),
       current_command(nullptr),
       target_pressure(target_pressure),
       syringe_end_position(0),
       valve_state(CLOSED),
+      _valve_pin(valve_pin),
       current_pressure(2.0)
     {
-        pinMode(VALVE_PIN, OUTPUT);
+        pinMode(_valve_pin, OUTPUT);
         //digitalWrite(VALVE_PIN, LOW); // Close valve initially
         
     }
@@ -61,19 +62,19 @@ void Perfusion::update_data(const String& data) {
 
 void Perfusion::opened_valve() {
     valve_state = OPEN;
-    digitalWrite(VALVE_PIN, HIGH);
+    digitalWrite(_valve_pin, HIGH);
 }
 
 void Perfusion::closed_valve() {
     valve_state = CLOSED;
-    digitalWrite(VALVE_PIN, LOW);
+    digitalWrite(_valve_pin, LOW);
 }
 
 
 void Perfusion::open_valve() {
 
     valve_state = (current_pressure > target_pressure) ? OPEN : CLOSED;
-    digitalWrite(VALVE_PIN, valve_state == OPEN ? HIGH : LOW);
+    digitalWrite(_valve_pin, valve_state == OPEN ? HIGH : LOW);
 
 }
 

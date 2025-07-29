@@ -62,6 +62,7 @@ void setup() {
 	ABS.SPI_setup();
 	ABS.update_info();
 
+	
   dht.begin();
 
 	Serial.println("<OK>");
@@ -117,8 +118,10 @@ void loop() {
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
+		if (perfusion.get_state() == 0) {
 			perfusion.start_perfusion();
 			tmc_driver.run();
+		}
 
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
@@ -126,9 +129,10 @@ void loop() {
 			tmc_driver.stop();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
+		if (perfusion.get_state() == 0) {
 			perfusion.start_perfusion();
 			tmc_driver.run();
-		
+		}
 
 	} else if (Commands[0] == "END_PERFUSION") {
 		  perfusion.end_perfusion();
@@ -161,12 +165,10 @@ void loop() {
 	
 	if (perfusion.get_state() == 0) {
 		if (Commands[5].toInt() == 1) {
-    if (perfusion.get_valve_state() == 0){
+    	if (perfusion.get_valve_state() == 0){
       perfusion.opened_valve();
       
-      } else {
-			  
-			}
+      } else {}
 
 		} else if (Commands[5].toInt() == 0){
 			perfusion.closed_valve();

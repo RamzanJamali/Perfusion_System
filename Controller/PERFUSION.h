@@ -6,7 +6,7 @@
 
 class Perfusion {
 public:
-    Perfusion(uint8_t VALVE_PIN, float target_pressure = 1.0);
+    Perfusion(uint8_t _valve_pin, float target_pressure = 1.0);
 
     enum PerfusionState { IDLE, PERFUSING, PAUSED };
     enum ValveState { CLOSED, OPEN };
@@ -51,7 +51,7 @@ public:
 
 private:
 
-    uint8_t VALVE_PIN;
+    uint8_t _valve_pin;
   
     // Perfusion state
     PerfusionState perfusion_state;
