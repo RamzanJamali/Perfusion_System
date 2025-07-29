@@ -1,7 +1,8 @@
 #include "config.h"
-#include "TMC_Driver.h"
+#include "TMC.h"
 #include "AS5048A.h"
 #include "Pressure.h"
+#include "PERFUSION.h"
 //#include "ReadTemperatureHumidity.h"
 
 #include <Adafruit_Sensor.h>
@@ -28,7 +29,8 @@ static int raw_low = 0;               // low raw sensor reading
 static int raw_high = 0;              // high raw sensor reading
 
 // Create perfusion system
-TMC2209Driver perfusion(RX_PIN, TX_PIN, runCurrentPercent, VALVE_PIN, target_pressure, desired_flow_rate); // Target pressure 500, initial speed 1, motor steps per revolution, microsteps
+Perfusion perfusion(VALVE_PIN, target_pressure); // 
+TMC_DRIVER tmc_driver(RX_PIN, TX_PIN, runCurrentPercent);
 
 // commands for arduino to operate. 
 String inputString = "";
@@ -48,6 +50,7 @@ void setup() {
 	Serial.begin(115200);
 	//Serial.setTimeout(500);
 	perfusion.set_end_position(0); // Set syringe end position
+	tmc_driver.begin();
 
 	//pinMode(LED_PIN, OUTPUT);
 	pinMode(BUTTON_PIN, INPUT);
@@ -115,16 +118,21 @@ void loop() {
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
 			perfusion.start_perfusion();
+			tmc_driver.run();
+
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
 		  perfusion.pause_perfusion();
+			tmc_driver.stop();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
 			perfusion.start_perfusion();
+			tmc_driver.run();
 		
 
 	} else if (Commands[0] == "END_PERFUSION") {
 		  perfusion.end_perfusion();
+			tmc_driver.stop();
 	} else {
 		}
 
@@ -135,9 +143,11 @@ void loop() {
 
 	if(Commands[2].toFloat() != desired_flow_rate){
 		desired_flow_rate = Commands[2].toFloat();
-		perfusion.set_flow_rate(desired_flow_rate);
+		//perfusion.set_flow_rate(desired_flow_rate);
 		//desired_motor_speed = Commands[2].toFloat();
-		//perfusion.set_speed(desired_motor_speed);
+		//delay(10);
+		tmc_driver.flow_rate(desired_flow_rate);
+		
 	} else {
 		}
 
