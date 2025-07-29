@@ -18,13 +18,11 @@ class SensorDatabase:
                     valve_state INTEGER,
                     humidity REAL,
                     temperature REAL,
+                    envir_pressure REAL,
+                    AQI REAL,
                     current_pressure REAL,
                     target_pressure REAL,
-                    motor_speed REAL,
-                    tilt REAL,
-                    gyro_x REAL,
-                    gyro_y REAL,
-                    gyro_z REAL
+                    motor_speed REAL
                 )
             ''')
             # Create indexes for fast timestamp-based queries
@@ -51,9 +49,9 @@ class SensorDatabase:
             cleaned.append(val)
 
         # 2) Validate length
-        if len(cleaned) != 11:
+        if len(cleaned) != 9:
             raise ValueError(
-                f"Expected 11 numeric fields, but got {len(cleaned)}: {cleaned!r}"
+                f"Expected 9 numeric fields, but got {len(cleaned)}: {cleaned!r}"
             )
         
         sensor_data = cleaned
@@ -61,10 +59,8 @@ class SensorDatabase:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO sensor_readings (
-                    perfusion_state, valve_state,
-                    humidity, temperature, current_pressure, target_pressure, motor_speed, 
-                    tilt, gyro_x, gyro_y, gyro_z
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    perfusion_state, valve_state, humidity, temperature, envir_pressure, AQI, current_pressure, target_pressure, motor_speed
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 sensor_data[0],
                 sensor_data[1],
@@ -74,9 +70,7 @@ class SensorDatabase:
                 sensor_data[5],
                 sensor_data[6],
                 sensor_data[7],
-                sensor_data[8],
-                sensor_data[9],
-                sensor_data[10]
+                sensor_data[8]
             ))
             conn.commit()
 

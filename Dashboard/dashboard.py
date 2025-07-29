@@ -226,7 +226,7 @@ def read_serial(buffer, _db):
                 pass
             """
             buffer.append((time.time(), frame.decode('utf-8')))
-            if len(buffer) > 100:  # keep only the last 100
+            if len(buffer) > 15:  # keep only the last 15
                 buffer.pop(0)
 
             #print(f"This function takes {time.time() - start}")
@@ -238,7 +238,7 @@ def serial_log():
     #start = time.time()
     st.markdown("### 🔄 Latest Serial Response:")
     st.subheader("Full Log")
-    st.write("This log shows the last 100 lines received from the Arduino.")
+    st.write("This log shows the last 15 lines received from the Arduino.")
     st.write("If you want to see the full log, please check the checkbox below.")
     if st.checkbox("Show log"):
         for t, msg in reversed(buffer):
@@ -367,7 +367,7 @@ except:
 
 # initialize an empty list in Session State
 if "data_rows" not in st.session_state:
-    st.session_state.data_rows = [("timestamp", "perfusion_state", "valve_state", "humidity", "temperature", "current_pressure", "target_pressure", "motor_speed", "tilt", "gyro_x", "gyro_y", "gyro_z")]
+    st.session_state.data_rows = [("timestamp", "perfusion_state", "valve_state", "humidity", "temperature", "envir_pressure", "AQI", "current_pressure", "target_pressure", "motor_speed")]
 
 
 # --- in your main app flow ---
