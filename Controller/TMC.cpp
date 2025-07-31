@@ -28,9 +28,10 @@ void TMC_DRIVER::stop() {
 
 void TMC_DRIVER::flow_rate(float flow) {
     if (flow >= 0.1) { // The lowest flow_rate limit
-        runVelocity = flow * 65.77363377; // The number 65.77363377 is calculated according to perfusion system parameters. See Formulas.xlsx for further calculations
+        runVelocity = flow * 80.89096; // The number 65.77363377 is calculated according to perfusion system parameters. See Formulas.xlsx for further calculations
+        // Old -> runVelocity = flow * 65.77363377; // The number 65.77363377 is calculated according to perfusion system parameters. See Formulas.xlsx for further calculations
     }
     else {
-        runVelocity = 6.577363377; // microstepping period for flow_rate at 0.1 mL per dau
+        runVelocity = 80.89096; // microstepping period for flow_rate at 0.1 mL per dau
     }
 }
