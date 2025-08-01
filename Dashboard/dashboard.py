@@ -86,7 +86,7 @@ def send_all_commands():
     # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
     ser.write(packet.encode())
-    #st.success(f"Sent: {packet.strip()}")
+    #print(f"Sent: {packet.strip()}")
     
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
@@ -107,24 +107,7 @@ def serial_write_button(name: str, button_key:str, command:str, position:int, bu
 
 @st.fragment(run_every=1)
 def button_form():
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
-    with col2:
-        counterclockwise = serial_write_button("PAUSE PERFUSION", "pause", "PAUSE_PERFUSION", 0, button_icon='⏸️')
-    with col3:
-        counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
-    with col4:
-        counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
-    with col5:
-        if st.session_state.cmd_history[5] == "0":
-            toggle = "1"
-        else:
-            toggle = "0"
-        counterclockwise = serial_write_button("TOGGLE VALVE", "valve", toggle, 5, button_icon="🔄")
-
-
-    col1, col2, col3, col4= st.columns(4)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         new_pressure = st.number_input("Pressure (mmHg)", min_value=0.0, max_value=1000.0, value=1.0, step=1.0, key="pressure_input")
         if new_pressure == None or new_pressure < 0:
@@ -134,9 +117,9 @@ def button_form():
         clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
 
     with col2:
-        new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 1.7", min_value=1.7, max_value=1000.0, value=1.7, step=0.01)
+        new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 0", min_value=0.0, max_value=1000.0, value=0.0, step=0.01)
         if new_flow_rate == None or new_flow_rate < 0:
-            new_flow_rate = 1.7
+            new_flow_rate = 0
         else:
             new_flow_rate = new_flow_rate
         counterclockwise = serial_write_button("SET FLOW RATE", "flowRate", str(new_flow_rate), 2, button_icon="💉")
@@ -156,6 +139,35 @@ def button_form():
         else:
             raw_high = raw_high
         set_raw_high = serial_write_button("SET RAW HIGH", "high_pressure", str(raw_high), 4, button_icon='⤴️')
+
+
+
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        clockwise = serial_write_button("START PERFUSION", "start", "START_PERFUSION", 0, button_icon='▶️')
+    with col2:
+        counterclockwise = serial_write_button("PAUSE PERFUSION", "pause", "PAUSE_PERFUSION", 0, button_icon='⏸️')
+    with col3:
+        counterclockwise = serial_write_button("CONTINUE PERFUSION", "continue", "CONTINUE_PERFUSION", 0, button_icon="⏯️")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        counterclockwise = serial_write_button("END PERFUSION", "end", "END_PERFUSION", 0, button_icon="⏹️")
+    with col2:
+        if st.session_state.cmd_history[5] == "0":
+            toggle = "1"
+        else:
+            toggle = "0"
+        counterclockwise = serial_write_button("TOGGLE VALVE", "valve", toggle, 5, button_icon="🔄")
+    with col3:
+        if float(st.session_state.cmd_history[2]) < 0:
+            new_flow_rate = 0
+        else:
+            new_flow_rate = -1000
+            st.session_state.cmd_history[0] = "IDLE"
+        counterclockwise = serial_write_button("Reverse", "reverse", str(new_flow_rate), 2, button_icon="🔙")
+
 
 
 # ————— BACKGROUND READER —————
@@ -300,7 +312,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "500.0", "1.7", "0", "0", "0"]  # Initialize with Six strings
+    st.session_state.cmd_history = ["IDLE",  "500.0", "0", "0", "0", "0"]  # Initialize with Six strings
 
 
 # start background thread once
@@ -311,7 +323,7 @@ if "reader" not in st.session_state:
     st.session_state.reader = t
 
 # Send commands 
-repeat_commands()
+#repeat_commands()
 
 
 # ————— ST UI —————

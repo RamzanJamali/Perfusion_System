@@ -136,13 +136,17 @@ void loop() {
 
 	if(Commands[2].toFloat() != desired_flow_rate){
 		desired_flow_rate = Commands[2].toFloat();
-		//perfusion.set_flow_rate(desired_flow_rate);
-		//desired_motor_speed = Commands[2].toFloat();
-		//delay(10);
 		tmc_driver.flow_rate(desired_flow_rate);
-		
-	} else {
+	} 
+	else {
 		}
+	if (desired_flow_rate < -1 && perfusion.get_state() == 0) {
+		tmc_driver.run();
+	}
+	else if (perfusion.get_state() == 0) {
+		tmc_driver.stop();
+	}
+
 
 	if ((Commands[3].toFloat() != -1) && perfusion.get_state() == 0) {
 			raw_low = Commands[3].toFloat();
