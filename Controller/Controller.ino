@@ -21,6 +21,8 @@ float desired_flow_rate = 2.5;
 float target_pressure = 500;
 int runCurrentPercent = 100;
 static double rpm = 0;
+
+bool valve_state;
 // define our CS PIN 
 AS5048A ABS(CS_PIN);
 
@@ -66,6 +68,7 @@ void setup() {
 	ABS.SPI_setup();
 	ABS.update_info();
 
+	valve_state = false;
 
 	Serial.println("<OK>");
 
@@ -186,18 +189,22 @@ void loop() {
     abs_prev_time = abs_current_time;
   }
 
+	if (perfusion.get_valve_state() == 1){
+		valve_state = true;
+	}
 
-/*
+
 	uint32_t current_time = millis();
 	if (current_time - prev_time > 999) {
 
 		Status();
+		valve_state = false;
 	}
-*/
+
 
 	//perfusion.update_data(data);
-	delay(999);
-	Status();
+	//delay(999);
+	//Status();
 
 
  float a = perfusion.get_current_pressure();
@@ -233,7 +240,7 @@ void CommandParser(String inputString, String *Commands) {
 
 void Status(){
 	// perfusion.get_motor_speed() will be replaced by flow rate.
-	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(perfusion.get_valve_state()) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,4) +">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(valve_state) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,4) +">");
 }
 
 
