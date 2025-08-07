@@ -18,7 +18,7 @@ int at_end_position; //define a numeric variable
 
 
 float desired_flow_rate = 2.5;
-float target_pressure = 500;
+float target_pressure = 15;
 int runCurrentPercent = 100;
 static double rpm = 0;
 

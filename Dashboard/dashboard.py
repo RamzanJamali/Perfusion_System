@@ -117,7 +117,7 @@ def button_form():
         clockwise = serial_write_button("SET PRESSURE", "pressure", str(new_pressure), 1, button_icon='🔧')
 
     with col2:
-        new_flow_rate = st.number_input("Flow Rate (ml/day) -> min value 0", min_value=0.0, max_value=1000.0, value=0.0, step=0.01)
+        new_flow_rate = st.number_input("Flow Rate (ml/day)", min_value=0.0, max_value=1000.0, value=2.5, step=0.1)
         if new_flow_rate == None or new_flow_rate < 0:
             new_flow_rate = 0
         else:
@@ -312,7 +312,7 @@ buffer = get_buffer()
 
 # ---- Initialize history ----
 if "cmd_history" not in st.session_state:
-    st.session_state.cmd_history = ["IDLE",  "500.0", "0", "0", "0", "0"]  # Initialize with Six strings
+    st.session_state.cmd_history = ["IDLE",  "15.0", "2.5", "0", "0", "0"]  # Initialize with Six strings
 
 
 # start background thread once
