@@ -22,7 +22,7 @@ float target_pressure = 500;
 int runCurrentPercent = 100;
 static double rpm = 0;
 
-bool valve_state;
+bool valve_status = false;
 // define our CS PIN 
 AS5048A ABS(CS_PIN);
 
@@ -68,7 +68,6 @@ void setup() {
 	ABS.SPI_setup();
 	ABS.update_info();
 
-	valve_state = false;
 
 	Serial.println("<OK>");
 
@@ -76,7 +75,9 @@ void setup() {
 
 void loop() {
 	
-
+  if (perfusion.get_valve_state() == HIGH){
+        valve_status = true;
+      }
 	result = ReadTemperatureHumidity();
 
   raw_pressure = analogRead(PRESSURE_PIN);
@@ -110,10 +111,11 @@ void loop() {
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
-		if (perfusion.get_state() == 0) {
 			perfusion.start_perfusion();
+      if (perfusion.get_valve_state() == HIGH){
+        valve_status = true;
+      }
 			tmc_driver.run();
-		}
 
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
@@ -121,10 +123,12 @@ void loop() {
 			tmc_driver.stop();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
-		if (perfusion.get_state() == 0) {
 			perfusion.start_perfusion();
+      if (perfusion.get_valve_state() == 1){
+        valve_status = true;
+      }
 			tmc_driver.run();
-		}
+
 
 	} else if (Commands[0] == "END_PERFUSION") {
 		  perfusion.end_perfusion();
@@ -182,23 +186,20 @@ void loop() {
 
 
   uint32_t abs_current_time = millis();
-  if (abs_current_time - abs_prev_time >= 5000) {
+  if (abs_current_time - abs_prev_time >= 10000) {
     ABS.update_info();
     rpm = ABS.get_speed();
     
     abs_prev_time = abs_current_time;
   }
 
-	if (perfusion.get_valve_state() == 1){
-		valve_state = true;
-	}
-
-
+  if (perfusion.get_valve_state() == HIGH){
+        valve_status = true;
+      }
 	uint32_t current_time = millis();
-	if (current_time - prev_time > 999) {
-
-		Status();
-		valve_state = false;
+	if (current_time - prev_time > 999) { 
+	  Status();
+		valve_status = false;
 	}
 
 
@@ -240,7 +241,7 @@ void CommandParser(String inputString, String *Commands) {
 
 void Status(){
 	// perfusion.get_motor_speed() will be replaced by flow rate.
-	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(valve_state) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,4) +">");
+	Serial.println("<"+ String(perfusion.get_state()) + ", " + String(valve_status) +", "+ result + ", " + perfusion.get_current_pressure()+ ", "+ perfusion.get_target_pressure() + ", "+ String(rpm,4) +">");
 }
 
 
