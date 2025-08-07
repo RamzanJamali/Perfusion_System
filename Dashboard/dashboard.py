@@ -86,8 +86,8 @@ def send_all_commands():
     # join every command with ',' and terminate with newline
     packet = ",".join(filter(None, st.session_state.cmd_history)) + "\n"
     ser.write(packet.encode())
-    #print(f"Sent: {packet.strip()}")
-    
+    st.write(f"Sent: {packet.strip()}")
+
 
 def serial_write_button(name: str, button_key:str, command:str, position:int, button_icon)-> None:
     """ Send command to Arduino when button is pressed. 

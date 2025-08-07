@@ -94,6 +94,7 @@ void Perfusion::pause_perfusion() {
     perfusion_state = PAUSED;
     current_command = "Pause perfusion";
     valve_state = CLOSED;
+    closed_valve();
 
 }
 
