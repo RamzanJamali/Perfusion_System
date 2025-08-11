@@ -197,9 +197,10 @@ void loop() {
         valve_status = true;
       }
 	uint32_t current_time = millis();
-	if (current_time - prev_time > 999) { 
+	if (current_time - prev_time > 990) { 
 	  Status();
 		valve_status = false;
+		prev_time = current_time;
 	}
 
 
