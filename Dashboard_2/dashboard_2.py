@@ -11,6 +11,7 @@ from collections import deque
 import datetime
 from pathlib import Path
 import os
+from waitress import serve
 # from save_data import SensorDatabase  # Uncomment when ready
 
 # --- Global Variables and Initialization ---
@@ -346,4 +347,5 @@ def update_command_history(press_btn, flow_btn, low_press_btn, high_press_btn,
     return new_history
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
+    #app.run(debug=True, use_reloader=False)
+    serve(app, host="127.0.0.50", port=8050)
