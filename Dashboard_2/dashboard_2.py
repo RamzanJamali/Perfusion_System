@@ -12,7 +12,7 @@ import datetime
 from pathlib import Path
 import os
 from waitress import serve
-# from save_data import SensorDatabase  # Uncomment when ready
+from save_data import SensorDatabase  # Uncomment when ready
 
 # --- Global Variables and Initialization ---
 # Setup database directory
@@ -111,12 +111,12 @@ def read_serial():
                     # Only store one message per second
                     if last_displayed_second != current_second:
                         # Database handling
-                        cmd = data_list[0]
+                        cmd = data_list[1]
                         if cmd == "1" and not DB_STATE[2]:  # START_PERFUSION
                             new_path = make_db_filename()
                             ensure_db_file(new_path)
                             DB_STATE[1] = new_path
-                            # DB_STATE[0] = SensorDatabase(database_path=new_path)  # Uncomment when ready
+                            DB_STATE[0] = SensorDatabase(database_path=new_path)  # Uncomment when ready
                             DB_STATE[2] = True
                             print(f"Perfusion started → logging to: {new_path}")
                         
@@ -126,7 +126,7 @@ def read_serial():
                         
                         if DB_STATE[2] and DB_STATE[0] is not None:
                             try:
-                                # DB_STATE[0].insert_reading(data_list)  # Uncomment when ready
+                                DB_STATE[0].insert_reading(data_list[1:])  # Uncomment when ready
                                 pass
                             except Exception as e:
                                 pass
@@ -348,4 +348,6 @@ def update_command_history(press_btn, flow_btn, low_press_btn, high_press_btn,
 
 if __name__ == '__main__':
     #app.run(debug=True, use_reloader=False)
+    print("Server running on http://127.0.0.50:8050")
     serve(app, host="127.0.0.50", port=8050)
+    
