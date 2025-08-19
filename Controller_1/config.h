@@ -20,7 +20,7 @@ constexpr uint8_t RX_PIN  =  4;
 
 // ——— AS5048A Encoder ———
   /*For SPI, you'll connect the encoder's MISO, MOSI, SCK, and CS pins to the corresponding SPI pins 
-  on your Arduino (typically D12, D11, D13, and D10 on an Uno/Nano, respectively). */
+  on your Arduino (typically D12, +5V, D13, and D10 on an Uno/Nano, respectively). */
 constexpr uint8_t CS_PIN = 10;
 
 // Analog pin for pressure sensor
