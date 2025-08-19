@@ -141,7 +141,10 @@ void PERFUSION::set_flow_rate(float desired_flow_rate) {
 */
 void Perfusion::set_end_position(int position) {
     syringe_end_position = position;
-    end_perfusion();
+}
+
+bool Perfusion::get_end_position() {
+    return syringe_end_position;
 }
 
 // Accessor methods

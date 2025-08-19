@@ -48,6 +48,7 @@ public:
     void open_valve();
     void opened_valve();
     void closed_valve();
+    bool get_end_position();
 
 private:
 

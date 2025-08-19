@@ -115,7 +115,12 @@ void loop() {
       if (perfusion.get_valve_state() == HIGH){
         valve_status = true;
       }
-			tmc_driver.run();
+			if (perfusion.get_end_position() == false){
+				tmc_driver.run();
+			}
+			else {
+				tmc_driver.stop();
+			}
 
 
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
@@ -127,7 +132,12 @@ void loop() {
       if (perfusion.get_valve_state() == 1){
         valve_status = true;
       }
-			tmc_driver.run();
+			if (perfusion.get_end_position() == false){
+				tmc_driver.run();
+			}
+			else {
+				tmc_driver.stop();
+			}
 
 
 	} else if (Commands[0] == "END_PERFUSION") {

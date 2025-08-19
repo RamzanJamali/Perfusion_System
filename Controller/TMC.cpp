@@ -13,8 +13,8 @@ void TMC_DRIVER::begin() {
     stepperDriver.setRunCurrent(runCurrentPercent);
     stepperDriver.enableCoolStep();
     stepperDriver.enableStealthChop();
-    stepperDriver.enable();
     stepperDriver.setMicrostepsPerStep(256);
+    stepperDriver.enable();
 }
 
 void TMC_DRIVER::run() {
