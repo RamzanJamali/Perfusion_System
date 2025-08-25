@@ -17,7 +17,7 @@ Adafruit_BME680 bme; // I2C
 int at_end_position; //define a numeric variable
 
 
-float desired_flow_rate = 2.5;
+float desired_flow_rate = 0;
 float target_pressure = 15;
 int runCurrentPercent = 100;
 static double rpm = 0;
@@ -47,7 +47,7 @@ static uint32_t abs_prev_time = 0;
 void setup() {
 
 	Serial.begin(115200);
-	//Serial.setTimeout(500);
+
 	perfusion.set_end_position(0); // Set syringe end position
 	tmc_driver.begin();
 
@@ -87,18 +87,13 @@ void loop() {
 		
 		if (inputString != Commands[0]+","+Commands[1]+","+Commands[2]+","+Commands[3]+","+Commands[4]+","+Commands[5]) {
 			CommandParser(inputString, Commands);
-			//Status();
-			//Serial.println("<"+Commands[0]+","+Commands[1]+">");
+
 		}
 		else{
-			//Status();
 		}
 		
 	}
 
-	//for (int x = 0; x<7; x++){
-			//Serial.print(Commands[x]);
-	//		}
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
@@ -106,11 +101,11 @@ void loop() {
       if (perfusion.get_valve_state() == HIGH){
         valve_status = true;
       }
-			if (perfusion.get_end_position() == false){
-				tmc_driver.run();
+			if (perfusion.get_end_position() == HIGH){
+				tmc_driver.stop();
 			}
 			else {
-				tmc_driver.stop();
+				tmc_driver.run();
 			}
 
 
@@ -123,11 +118,11 @@ void loop() {
       if (perfusion.get_valve_state() == 1){
         valve_status = true;
       }
-			if (perfusion.get_end_position() == false){
-				tmc_driver.run();
+			if (perfusion.get_end_position() == HIGH){
+				tmc_driver.stop();
 			}
 			else {
-				tmc_driver.stop();
+				tmc_driver.run();
 			}
 
 
@@ -192,7 +187,9 @@ void loop() {
 	uint32_t current_time = millis();
 	if (current_time - prev_time > 990) { 
 	  Status();
-		valve_status = false;
+		if (perfusion.get_state() == 1) {
+			valve_status = false;
+		}
 		prev_time = current_time;
 	}
 
