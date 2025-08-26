@@ -14,7 +14,7 @@
 
 Adafruit_BME680 bme; // I2C
 
-int at_end_position; //define a numeric variable
+bool at_end_position = LOW; //define a numeric variable
 
 
 float desired_flow_rate = 0;
@@ -111,7 +111,7 @@ void loop() {
 	
 	// In next step, these all if conditions will be put in a separate file in a function and only the function will be called here.
 	if (Commands[0] == "START_PERFUSION") {
-			perfusion.start_perfusion();
+			
       if (perfusion.get_valve_state() == HIGH){
         valve_status = true;
       }
@@ -119,6 +119,7 @@ void loop() {
 				tmc_driver.stop();
 			}
 			else {
+				perfusion.start_perfusion();
 				tmc_driver.run();
 			}
 
@@ -128,7 +129,7 @@ void loop() {
 			tmc_driver.stop();
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
-			perfusion.start_perfusion();
+			
       if (perfusion.get_valve_state() == 1){
         valve_status = true;
       }
@@ -136,6 +137,7 @@ void loop() {
 				tmc_driver.stop();
 			}
 			else {
+				perfusion.start_perfusion();
 				tmc_driver.run();
 			}
 
@@ -210,7 +212,7 @@ void loop() {
 	if (current_time - prev_time > 990) { 
 	  Status();
 		if (perfusion.get_state() == 1) {
-			valve_status = false;
+			valve_status = perfusion.get_valve_state();
 		}
 		prev_time = current_time;
 	}
