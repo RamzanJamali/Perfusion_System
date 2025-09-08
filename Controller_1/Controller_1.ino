@@ -234,6 +234,9 @@ void loop() {
  } else {
   at_end_position = digitalRead(BUTTON_PIN);
   perfusion.set_end_position(at_end_position);
+  if (perfusion.get_end_position() == HIGH) {
+    perfusion.end_perfusion();
+  }
   }
  
 }
