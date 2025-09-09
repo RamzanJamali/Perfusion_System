@@ -10,8 +10,6 @@
 #include "Adafruit_BME680.h"
 
 
-#define SEALEVELPRESSURE_HPA (1013.25)
-
 Adafruit_BME680 bme; // I2C
 
 bool at_end_position = LOW; //define a numeric variable
