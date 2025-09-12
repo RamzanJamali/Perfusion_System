@@ -115,6 +115,7 @@ void loop() {
       }
 			if (perfusion.get_end_position() == HIGH){
 				tmc_driver.stop();
+        perfusion.end_perfusion();
 			}
 			else {
 				perfusion.start_perfusion();
@@ -125,6 +126,7 @@ void loop() {
 	} else if (Commands[0] == "PAUSE_PERFUSION") {
 		  perfusion.pause_perfusion();
 			tmc_driver.stop();
+      
 
 	} else if (Commands[0] == "CONTINUE_PERFUSION"){
 			
@@ -133,6 +135,7 @@ void loop() {
       }
 			if (perfusion.get_end_position() == HIGH){
 				tmc_driver.stop();
+        perfusion.end_perfusion();
 			}
 			else {
 				perfusion.start_perfusion();
