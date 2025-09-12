@@ -10,8 +10,6 @@
 #include "Adafruit_BME680.h"
 
 
-#define SEALEVELPRESSURE_HPA (1013.25)
-
 Adafruit_BME680 bme; // I2C
 
 bool at_end_position = LOW; //define a numeric variable
@@ -103,6 +101,7 @@ void loop() {
       }
 			if (at_end_position == HIGH){
 				tmc_driver.stop();
+        perfusion.end_perfusion();
 			}
 			else {
 				perfusion.start_perfusion();
@@ -121,6 +120,7 @@ void loop() {
       }
 			if (at_end_position == HIGH){
 				tmc_driver.stop();
+        perfusion.end_perfusion();
 			}
 			else {
 				perfusion.start_perfusion();
