@@ -1,0 +1,30 @@
+
+
+/* Custom default colors for specific buttons */
+#start-btn, #pause-btn, #continue-btn {
+    background-color: #a77028 !important;  /* Bootstrap secondary color */
+    border-color: #454545  !important;
+    color: #ffffff !important;  /* Black text for better contrast */
+}
+
+
+
+#reverse-btn, #valve-btn, #end-btn {
+    background-color: #00d4f4 !important;  /* Bootstrap info color */
+    border-color: #454545 !important;
+    color: #454545 !important;  /* Black text for better contrast */
+}
+
+/* Change button color when pressed/active */
+#start-btn:focus, #pause-btn:focus, #continue-btn:focus, #end-btn:focus, #reverse-btn:focus, #valve-btn:focus {
+    background-color: #fff200 !important;  /* Green when pressed */
+    border-color: #000 !important;
+    transform: scale(0.98);  /* Optional: slight press effect */
+    color: #454545 !important;  /* Ensure text remains black */
+}
+
+/* Hover effects */
+.btn:hover {
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
