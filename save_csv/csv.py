@@ -49,11 +49,14 @@ uploaded_db = st.file_uploader(
 )
 
 if uploaded_db is not None:
+    print(f"Uploaded file: {uploaded_db.name}")
     # Save uploaded file to a temporary location
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp_file.write(uploaded_db.read())
     tmp_file.flush()
     db_path = tmp_file.name
+
+    temp_file_name = uploaded_db.name.replace('.db', '.csv')
 
     # Fetch and display readings
     if st.button("🔄 Load All Readings"):
@@ -73,7 +76,7 @@ if uploaded_db is not None:
                 st.download_button(
                     label="📥 Download CSV",
                     data=csv_buffer,
-                    file_name=f"sensor_readings_export.csv",
+                    file_name=temp_file_name,
                     mime="text/csv"
                 )
                 st.dataframe(df)
