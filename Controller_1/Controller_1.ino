@@ -226,7 +226,7 @@ void loop() {
 
  float a = perfusion.get_current_pressure();
  float b = perfusion.get_target_pressure();
- b = b * 1.5;
+ b = b * 1.3;
 
 
  if (a > b) {
