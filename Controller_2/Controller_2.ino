@@ -3,7 +3,6 @@
 #include "AS5048A.h"
 #include "PERFUSION.h"
 #include "Pressure_Ceraphant.h"
-//#include "ReadTemperatureHumidity.h"
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -203,7 +202,7 @@ void loop() {
 
  float a = perfusion.get_current_pressure();
  float b = perfusion.get_target_pressure();
- b = b * 1.5;
+ b = b * 1.3;
 
 
  if (a > b) {
@@ -292,35 +291,3 @@ String ReadTemperatureHumidity() {
 
   return Readings;
 }
-
-
-/*
-
-float averageDelta(float newSample) {
-  // 1) Insert newSample into our rolling buffer
-  if (sampleCount < MAX_SAMPLES) {
-    samples[sampleCount++] = newSample;
-  } else {
-    // shift left, drop samples[0]
-    for (uint8_t i = 0; i < MAX_SAMPLES - 1; i++) {
-      samples[i] = samples[i + 1];
-    }
-    samples[MAX_SAMPLES - 1] = newSample;
-  }
-
-  // 2) If we don't yet have at least two samples, no delta to compute
-  if (sampleCount < 2) {
-    return 0.0;
-  }
-
-  // 3) Sum up differences between consecutive samples
-  float sumDeltas = 0.0;
-  uint8_t delCount = sampleCount - 1;
-  for (uint8_t i = 0; i < delCount; i++) {
-    sumDeltas += (samples[i + 1] - samples[i]);
-  }
-
-  // 4) Return average difference
-  return sumDeltas / delCount;
-}
-*/
