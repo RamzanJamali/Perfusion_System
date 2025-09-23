@@ -19,6 +19,7 @@ float desired_flow_rate = 0;
 float target_pressure = 15;
 int runCurrentPercent = 100;
 static double rpm = 0;
+float abs_time;
 
 bool valve_status = false;
 // define our CS PIN 
@@ -198,8 +199,15 @@ void loop() {
   
 
 
+if (desired_flow_rate != 0 ){
+  abs_time = 25000 / abs(desired_flow_rate);
+}
+else {
+  abs_time = 10000;
+}
+
   uint32_t abs_current_time = millis();
-  if (abs_current_time - abs_prev_time >= 10000) {
+  if (abs_current_time - abs_prev_time >= abs_time) {
     ABS.update_info();
     rpm = ABS.get_speed();
     
