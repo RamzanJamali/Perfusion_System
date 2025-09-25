@@ -28,6 +28,6 @@ void TMC_DRIVER::stop() {
 }
 
 void TMC_DRIVER::flow_rate(float flow) {
-    runVelocity = flow * 65.78; // The number 79.5 is calculated according to perfusion system parameters. See Formulas.xlsx and Measurements.xlsx for further calculations
+    runVelocity = flow * 68.46; // The number 79.5 is calculated according to perfusion system parameters. See Formulas.xlsx and Measurements.xlsx for further calculations
     // Old -> runVelocity = flow * 65.77363377; // The number 65.77363377 is calculated according to perfusion system parameters. See Formulas.xlsx for further calculations
 }

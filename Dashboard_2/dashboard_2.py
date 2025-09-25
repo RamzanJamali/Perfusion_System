@@ -337,7 +337,7 @@ def update_command_history(press_btn, flow_btn, low_press_btn, high_press_btn,
     elif button_id == 'reverse-btn':
         # Toggle flow direction
         if float(current_history[2]) >= 0:
-            new_history[2] = "-1000"
+            new_history[2] = "-2000"
             new_history[0] = "IDLE"
         else:
             new_history[2] = "2.5"
