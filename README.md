@@ -49,10 +49,4 @@ To get a copy of the project, you can **clone** the repository or **download it 
 - The `software/` directory contains the Python-based dashboards. Use `Dashboard_2` for the best experience.
 - Refer to the `hardware/` directory for assembly guides, CAD files, and the bill of materials.
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Human corneas were ethically sourced for research and not used for transplantation.
